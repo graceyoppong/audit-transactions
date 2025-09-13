@@ -118,19 +118,53 @@ const TransactionDetails: React.FC = () => {
 
     // Apply additional filters if any (excluding date filters since they're already applied in baseTransactions)
     if (appliedFilters) {
-      if (appliedFilters.search) {
-        filtered = filtered.filter(
-          (t: Transaction) =>
-            t.description.toLowerCase().includes(appliedFilters.search!.toLowerCase()) ||
-            t.reference.toLowerCase().includes(appliedFilters.search!.toLowerCase())
+      // Global Search - searches across multiple fields
+      if (appliedFilters.globalSearch) {
+        const searchTerm = appliedFilters.globalSearch.toLowerCase();
+        filtered = filtered.filter((t: Transaction) =>
+          t.description?.toLowerCase().includes(searchTerm) ||
+          t.reference?.toLowerCase().includes(searchTerm) ||
+          t.transactionid?.toLowerCase().includes(searchTerm) ||
+          t.batchnumber?.toLowerCase().includes(searchTerm) ||
+          t.senderaccount?.toLowerCase().includes(searchTerm) ||
+          t.receiveraccount?.toLowerCase().includes(searchTerm) ||
+          t.sendertelephone?.toLowerCase().includes(searchTerm) ||
+          t.receivertelephone?.toLowerCase().includes(searchTerm) ||
+          t.customername?.toLowerCase().includes(searchTerm) ||
+          t.customernumber?.toLowerCase().includes(searchTerm) ||
+          t.username?.toLowerCase().includes(searchTerm) ||
+          t.confirmationcode?.toLowerCase().includes(searchTerm)
         );
       }
 
-      if (appliedFilters.accountNumber) {
+      // Transaction ID
+      if (appliedFilters.transactionId) {
         filtered = filtered.filter((t: Transaction) =>
-          t.accountNumber
-            ?.toLowerCase()
-            .includes(appliedFilters.accountNumber!.toLowerCase())
+          t.transactionid?.toLowerCase().includes(appliedFilters.transactionId!.toLowerCase()) ||
+          t.reference?.toLowerCase().includes(appliedFilters.transactionId!.toLowerCase())
+        );
+      }
+
+      // Batch Number
+      if (appliedFilters.batchNumber) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.batchnumber?.toLowerCase().includes(appliedFilters.batchNumber!.toLowerCase())
+        );
+      }
+
+      // Sender (account or phone)
+      if (appliedFilters.sender) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.senderaccount?.toLowerCase().includes(appliedFilters.sender!.toLowerCase()) ||
+          t.sendertelephone?.toLowerCase().includes(appliedFilters.sender!.toLowerCase())
+        );
+      }
+
+      // Receiver (account or phone)
+      if (appliedFilters.receiver) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.receiveraccount?.toLowerCase().includes(appliedFilters.receiver!.toLowerCase()) ||
+          t.receivertelephone?.toLowerCase().includes(appliedFilters.receiver!.toLowerCase())
         );
       }
 

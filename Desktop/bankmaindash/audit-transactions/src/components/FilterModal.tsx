@@ -34,8 +34,11 @@ interface FilterModalProps {
 }
 
 export interface FilterCriteria {
-  search: string;
-  accountNumber: string;
+  globalSearch: string;
+  transactionId: string;
+  batchNumber: string;
+  sender: string;
+  receiver: string;
   status: string;
   type: string;
   dateFrom: Date | undefined;
@@ -54,8 +57,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
   serviceType,
 }) => {
   const [filters, setFilters] = useState<FilterCriteria>({
-    search: "",
-    accountNumber: "",
+    globalSearch: "",
+    transactionId: "",
+    batchNumber: "",
+    sender: "",
+    receiver: "",
     status: "all",
     type: "all",
     dateFrom: undefined,
@@ -74,8 +80,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   const handleReset = () => {
     setFilters({
-      search: "",
-      accountNumber: "",
+      globalSearch: "",
+      transactionId: "",
+      batchNumber: "",
+      sender: "",
+      receiver: "",
       status: "all",
       type: "all",
       dateFrom: undefined,
@@ -150,28 +159,67 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-          {/* Search */}
-          <div className="space-y-2">
-            <Label htmlFor="search">Search</Label>
+          {/* Global Search */}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="globalSearch">Global Search</Label>
             <Input
-              id="search"
-              placeholder="Search transactions..."
-              value={filters.search}
+              id="globalSearch"
+              placeholder="Search across all transaction fields..."
+              value={filters.globalSearch}
               onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
+                setFilters({ ...filters, globalSearch: e.target.value })
               }
             />
           </div>
 
-          {/* Account Number */}
+          {/* Transaction ID */}
           <div className="space-y-2">
-            <Label htmlFor="accountNumber">Account Number</Label>
+            <Label htmlFor="transactionId">Transaction ID</Label>
             <Input
-              id="accountNumber"
-              placeholder="Enter account number"
-              value={filters.accountNumber}
+              id="transactionId"
+              placeholder="Enter transaction ID"
+              value={filters.transactionId}
               onChange={(e) =>
-                setFilters({ ...filters, accountNumber: e.target.value })
+                setFilters({ ...filters, transactionId: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Batch Number */}
+          <div className="space-y-2">
+            <Label htmlFor="batchNumber">Batch Number</Label>
+            <Input
+              id="batchNumber"
+              placeholder="Enter batch number"
+              value={filters.batchNumber}
+              onChange={(e) =>
+                setFilters({ ...filters, batchNumber: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Sender */}
+          <div className="space-y-2">
+            <Label htmlFor="sender">Sender</Label>
+            <Input
+              id="sender"
+              placeholder="Enter sender account/phone"
+              value={filters.sender}
+              onChange={(e) =>
+                setFilters({ ...filters, sender: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Receiver */}
+          <div className="space-y-2">
+            <Label htmlFor="receiver">Receiver</Label>
+            <Input
+              id="receiver"
+              placeholder="Enter receiver account/phone"
+              value={filters.receiver}
+              onChange={(e) =>
+                setFilters({ ...filters, receiver: e.target.value })
               }
             />
           </div>
@@ -276,6 +324,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
               id="amountFrom"
               type="number"
               placeholder="0.00"
+              step="0.01"
+              min="0"
               value={filters.amountFrom}
               onChange={(e) =>
                 setFilters({ ...filters, amountFrom: e.target.value })
@@ -290,6 +340,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
               id="amountTo"
               type="number"
               placeholder="0.00"
+              step="0.01"
+              min="0"
               value={filters.amountTo}
               onChange={(e) =>
                 setFilters({ ...filters, amountTo: e.target.value })

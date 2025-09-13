@@ -90,7 +90,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const renderTransactionInfo = () => {
     const info = [];
 
-    // Sender Account (from real data format)
+    // Sender Account
     if (transaction.senderaccount) {
       info.push({
         label: "Sender Account",
@@ -99,7 +99,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Receiver Account (from real data format)
+    // Receiver Account
     if (transaction.receiveraccount) {
       info.push({
         label: "Receiver Account",
@@ -108,7 +108,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Sender Telephone (from real data format)
+    // Sender Telephone
     if (transaction.sendertelephone) {
       info.push({
         label: "Sender Phone",
@@ -117,7 +117,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Receiver Telephone (from real data format)
+    // Receiver Telephone
     if (transaction.receivertelephone) {
       info.push({
         label: "Receiver Phone",
@@ -126,7 +126,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Currency (from real data format)
+    // Currency
     if (transaction.currency) {
       info.push({
         label: "Currency",
@@ -135,7 +135,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Customer Number (from real data format)
+    // Customer Number
     if (transaction.customernumber) {
       info.push({
         label: "Customer Number",
@@ -144,7 +144,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Customer Name (from real data format)
+    // Customer Name
     if (transaction.customername) {
       info.push({
         label: "Customer Name",
@@ -153,53 +153,12 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Channel (from real data format)
+    // Channel
     if (transaction.channel) {
       info.push({
         label: "Channel",
         value: transaction.channel,
         icon: <Zap className="w-4 h-4" />,
-      });
-    }
-
-    // Fallback to legacy fields if new format fields are not available
-    if (!transaction.senderaccount && transaction.sender) {
-      info.push({
-        label: "Sender",
-        value: transaction.sender,
-        icon: <User className="w-4 h-4" />,
-      });
-    }
-
-    if (!transaction.receiveraccount && transaction.recipient) {
-      info.push({
-        label: "Recipient",
-        value: transaction.recipient,
-        icon: <User className="w-4 h-4" />,
-      });
-    }
-
-    if (!transaction.sendertelephone && !transaction.receivertelephone && transaction.phoneNumber) {
-      info.push({
-        label: "Phone Number",
-        value: transaction.phoneNumber,
-        icon: <Phone className="w-4 h-4" />,
-      });
-    }
-
-    if (!transaction.senderaccount && !transaction.receiveraccount && transaction.accountNumber) {
-      info.push({
-        label: "Account Number",
-        value: transaction.accountNumber,
-        icon: <CreditCard className="w-4 h-4" />,
-      });
-    }
-
-    if (transaction.smartCardNumber) {
-      info.push({
-        label: "Smart Card Number",
-        value: transaction.smartCardNumber,
-        icon: <CreditCard className="w-4 h-4" />,
       });
     }
 
@@ -247,7 +206,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </span>
                   </div>
                   
-                  {/* Transaction ID from real data format */}
+                  {/* Transaction ID */}
                   {transaction.transactionid && transaction.transactionid !== transaction.reference && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -259,7 +218,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </div>
                   )}
 
-                  {/* Batch Number from real data format */}
+                  {/* Batch Number */}
                   {transaction.batchnumber && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -279,7 +238,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(transaction.date)}</span>
                   </div>
 
-                  {/* Posting Date from real data format */}
+                  {/* Posting Date */}
                   {transaction.postingdate && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
@@ -303,7 +262,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </span>
                   </div>
 
-                  {/* Payout Currency from real data format */}
+                  {/* Payout Currency */}
                   {transaction.payoutcurrency && transaction.payoutcurrency !== transaction.currency && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
@@ -331,7 +290,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         {transaction.type.charAt(0).toUpperCase() +
                           transaction.type.slice(1)}
                       </Badge>
-                      {/* Transaction Type from real data format */}
+                      {/* Transaction Type Code */}
                       {transaction.transtype && (
                         <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                           Code: {transaction.transtype}
@@ -340,7 +299,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Status Code from real data format */}
+                  {/* Status Code */}
                   {transaction.statuscode && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -358,7 +317,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </div>
                   )}
 
-                  {/* Response Code from real data format */}
+                  {/* Response Code */}
                   {transaction.responsecode && (
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -393,7 +352,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   </p>
                 </div>
 
-                {/* Transfer Status from real data format */}
+                {/* Transfer Status */}
                 {transaction.transferstatus && (
                   <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -413,7 +372,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* Response Message from real data format */}
+                {/* Response Message */}
                 {transaction.responsemessage && (
                   <div className="py-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
@@ -425,7 +384,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* Username from real data format */}
+                {/* Username */}
                 {transaction.username && (
                   <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
@@ -436,7 +395,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* Confirmation details from real data format */}
+                {/* Confirmation details */}
                 {transaction.confirmationcode && (
                   <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -457,7 +416,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* Additional parameters from real data format */}
+                {/* Additional parameters */}
                 {transaction.param1 && (
                   <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -500,11 +459,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {transaction.errorMessage && (
-                  <p className="text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded-md mb-3">
-                    {transaction.errorMessage}
-                  </p>
-                )}
                 {transaction.exceptions && (
                   <div>
                     <span className="text-sm font-medium text-red-600 dark:text-red-400">Exceptions:</span>
@@ -587,10 +541,9 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           {/* Request and Response Bodies */}
           <Tabs defaultValue="request" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="request">Request Payload</TabsTrigger>
               <TabsTrigger value="response">Response Payload</TabsTrigger>
-              <TabsTrigger value="callback">Callback Data</TabsTrigger>
             </TabsList>
 
             <TabsContent value="request" className="mt-4">
@@ -599,29 +552,25 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <CardTitle className="text-lg">Request Payload</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                    <code className="language-json whitespace-pre-wrap">
-                      {(() => {
-                        // Try to use the real data format first
-                        if (transaction.requestpayload) {
-                          try {
-                            return formatJsonWithSyntaxHighlighting(
-                              JSON.parse(transaction.requestpayload)
-                            );
-                          } catch {
-                            return transaction.requestpayload;
+                  <ScrollArea className="h-96 w-full">
+                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                      <code className="language-json whitespace-pre-wrap">
+                        {(() => {
+                          // Use the real API data format
+                          if (transaction.requestpayload) {
+                            try {
+                              return formatJsonWithSyntaxHighlighting(
+                                JSON.parse(transaction.requestpayload)
+                              );
+                            } catch {
+                              return transaction.requestpayload;
+                            }
                           }
-                        }
-                        // Fallback to the mock data format
-                        else if (transaction.requestBody) {
-                          return formatJsonWithSyntaxHighlighting(
-                            transaction.requestBody
-                          );
-                        }
-                        return "No request payload available";
-                      })()}
-                    </code>
-                  </pre>
+                          return "No request payload available";
+                        })()}
+                      </code>
+                    </pre>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -630,60 +579,30 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Response Payload</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                    <code className="language-json whitespace-pre-wrap">
-                      {(() => {
-                        // Try to use the real data format first
-                        if (transaction.responsepayload) {
-                          try {
-                            return formatJsonWithSyntaxHighlighting(
-                              JSON.parse(transaction.responsepayload)
-                            );
-                          } catch {
-                            return transaction.responsepayload;
-                          }
-                        }
-                        // Fallback to the mock data format
-                        else if (transaction.responseBody) {
-                          return formatJsonWithSyntaxHighlighting(
-                            transaction.responseBody
-                          );
-                        }
-                        return "No response payload available";
-                      })()}
-                    </code>
-                  </pre>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="callback" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Callback Data</CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Final callback response from the service provider
+                    Complete response including callback data from the service provider
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                    <code className="language-json whitespace-pre-wrap">
-                      {(() => {
-                        if (transaction.callback) {
-                          try {
-                            return formatJsonWithSyntaxHighlighting(
-                              JSON.parse(transaction.callback)
-                            );
-                          } catch {
-                            return transaction.callback;
+                  <ScrollArea className="h-96 w-full">
+                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                      <code className="language-json whitespace-pre-wrap">
+                        {(() => {
+                          // Use the real API data format
+                          if (transaction.responsepayload) {
+                            try {
+                              return formatJsonWithSyntaxHighlighting(
+                                JSON.parse(transaction.responsepayload)
+                              );
+                            } catch {
+                              return transaction.responsepayload;
+                            }
                           }
-                        }
-                        return "No callback data available";
-                      })()}
-                    </code>
-                  </pre>
+                          return "No response payload available";
+                        })()}
+                      </code>
+                    </pre>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </TabsContent>
