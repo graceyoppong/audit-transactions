@@ -7,6 +7,7 @@ import TopBar from '@/components/TopBar';
 import TransactionCard from '@/components/TransactionCard';
 import { mockTransactions, cardData } from '@/lib/mockData';
 import { apiClient } from '@/lib/apiClient';
+import { useTransactionCounts } from '@/hooks/useTransactionCounts';
 import { Loader2, AlertCircle, RefreshCw, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,6 +28,17 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Get service IDs for transaction count fetching
+  const serviceIds = services.map(service => service.id.toString());
+  
+  // Load transaction counts for all services
+  const { 
+    transactionCounts, 
+    loading: countsLoading, 
+    error: countsError, 
+    refetch: refetchCounts 
+  } = useTransactionCounts(serviceIds);
 
   // Load services from API
   useEffect(() => {
@@ -65,6 +77,13 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleRefresh = () => {
+    loadServices();
+    if (serviceIds.length > 0) {
+      refetchCounts();
+    }
+  };
+
   // Map service to card format for TransactionCard component
   const mapServiceToCard = (service: Service) => {
     console.log('Dashboard: Mapping service:', service.name, 'Logo URL:', service.logo_url);
@@ -81,19 +100,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCardClick = (cardId: string) => {
-    // For now, still use the original mock data routing
-    // You might want to update this to use real service IDs later
-    const mockServiceMap: Record<string, string> = {
-      '5': 'wallet-to-acc',
-      '6': 'acc-to-wallet', 
-      '7': 'airtime',
-      '8': 'multichoice',
-      '9': 'ecg',
-      '10': 'water'
-    };
-    
-    const mockServiceId = mockServiceMap[cardId] || 'wallet-to-acc';
-    router.push(`/transactions/${mockServiceId}`);
+    // Use the actual service ID from the API instead of mapping to mock service names
+    router.push(`/transactions/${cardId}`);
   };
 
   const toggleSidebar = () => {
@@ -102,6 +110,9 @@ const Dashboard: React.FC = () => {
 
   // Only use API services, no fallback to mock data
   const displayServices = services.filter(service => service.status).map(mapServiceToCard);
+
+  // Separate loading states - services vs transaction counts
+  const hasError = error || countsError;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -119,13 +130,13 @@ const Dashboard: React.FC = () => {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Banking Services</h2>
                   <p className="text-gray-600 dark:text-gray-400">
                     {loading ? 'Loading services...' : 
-                     error ? 'Unable to load services' :
+                     hasError ? 'Unable to load services' :
                      services.length > 0 ? 'Click on any service to view transaction details' :
                      'No services available from the database'}
                   </p>
                 </div>
-                {error && (
-                  <Button onClick={loadServices} variant="outline" size="sm">
+                {hasError && (
+                  <Button onClick={handleRefresh} variant="outline" size="sm">
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry
                   </Button>
@@ -144,7 +155,7 @@ const Dashboard: React.FC = () => {
                     </p>
                   </CardContent>
                 </Card>
-              ) : error ? (
+              ) : hasError ? (
                 <Card>
                   <CardContent className="p-12 text-center">
                     <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
@@ -152,10 +163,10 @@ const Dashboard: React.FC = () => {
                       Unable to Load Services
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      {error}
+                      {error || countsError}
                     </p>
                     <div className="space-y-3">
-                      <Button onClick={loadServices}>
+                      <Button onClick={handleRefresh}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Try Again
                       </Button>
@@ -173,14 +184,15 @@ const Dashboard: React.FC = () => {
                     icon={card.icon}
                     description={card.description}
                     color={card.color}
-                    transactionCount={mockTransactions[card.id]?.length || 0}
+                    transactionCount={transactionCounts[card.id] || 0}
                     onClick={() => handleCardClick(card.id)}
                     logoUrl={(card as any).logoUrl}
+                    isLoadingCount={countsLoading && services.length > 0}
                   />
                 ))}
               </div>
 
-              {displayServices.length === 0 && !loading && !error && (
+              {displayServices.length === 0 && !loading && !hasError && (
                 <Card>
                   <CardContent className="p-12 text-center">
                     <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />

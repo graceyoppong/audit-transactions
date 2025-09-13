@@ -120,7 +120,7 @@ class ApiClient {
   // Authentication methods
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const response = await this.request<any>('/api/auth/login', {
+      const response = await this.request<any>('/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
@@ -160,13 +160,13 @@ class ApiClient {
       if (errorStatus === 0 || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
         console.warn('Network issue during login - login may have succeeded:', {
           message: errorMessage,
-          url: `${this.baseURL}/api/auth/login`
+          url: `${this.baseURL}/auth/login`
         });
       } else {
         console.error('Login API error:', {
           message: errorMessage,
           status: errorStatus || 'No status',
-          url: `${this.baseURL}/api/auth/login`
+          url: `${this.baseURL}/auth/login`
         });
       }
       throw error;
@@ -174,14 +174,14 @@ class ApiClient {
   }
 
   async logout(): Promise<{ success: boolean }> {
-    return this.request<{ success: boolean }>('/api/auth/logout', {
+    return this.request<{ success: boolean }>('/auth/logout', {
       method: 'POST',
     });
   }
 
   async verifyToken(): Promise<{ valid: boolean; user?: any }> {
     try {
-      return await this.request<{ valid: boolean; user?: any }>('/api/auth/verify', {
+      return await this.request<{ valid: boolean; user?: any }>('/auth/verify', {
         method: 'GET',
       });
     } catch (error) {
@@ -230,9 +230,9 @@ class ApiClient {
     assignments?: number;
     active?: boolean;
   }): Promise<any> {
-    console.log('ApiClient: Making request to /api/auth/users (CREATE USER)');
+    console.log('ApiClient: Making request to /auth/users (CREATE USER)');
     console.log('ApiClient: Base URL:', this.baseURL);
-    console.log('ApiClient: Full URL:', `${this.baseURL}/api/auth/users`);
+    console.log('ApiClient: Full URL:', `${this.baseURL}/auth/users`);
     console.log('ApiClient: User data being sent:', userData);
     
     return this.request<any>('/auth/users', {
@@ -244,15 +244,15 @@ class ApiClient {
   // User management methods
   async getUsers(): Promise<any> {
     try {
-      console.log('ApiClient: Making request to /api/auth/users');
+      console.log('ApiClient: Making request to /auth/users');
       console.log('ApiClient: Base URL:', this.baseURL);
-      console.log('ApiClient: Full URL:', `${this.baseURL}/api/auth/users`);
+      console.log('ApiClient: Full URL:', `${this.baseURL}/auth/users`);
       
       const result = await this.request<any>('/auth/users', {
         method: 'GET',
       });
       
-      console.log('ApiClient: Successfully received response from /api/auth/users');
+      console.log('ApiClient: Successfully received response from /auth/users');
       console.log('ApiClient: Response type:', typeof result);
       console.log('ApiClient: Response is array:', Array.isArray(result));
       console.log('ApiClient: Response keys:', Object.keys(result || {}));
@@ -329,6 +329,29 @@ class ApiClient {
     return this.request<any>(`/services/services/${serviceId}`, {
       method: 'DELETE',
     });
+  }
+
+  // Transaction methods
+  async getTransactions(serviceId: string, limit: number = 5, offset: number = 40): Promise<any> {
+    try {
+      console.log('ApiClient: Making request to /transactions/service/{serviceId}');
+      console.log('ApiClient: Base URL:', this.baseURL);
+      console.log('ApiClient: Full URL:', `${this.baseURL}/transactions/service/${serviceId}?limit=${limit}&offset=${offset}`);
+      
+      const result = await this.request<any>(`/transactions/service/${serviceId}?limit=${limit}&offset=${offset}`, {
+        method: 'GET',
+      });
+      
+      console.log('ApiClient: Successfully received response from /transactions/service/{serviceId}');
+      console.log('ApiClient: Response type:', typeof result);
+      console.log('ApiClient: Response is array:', Array.isArray(result));
+      console.log('ApiClient: Response keys:', Object.keys(result || {}));
+      
+      return result;
+    } catch (error) {
+      console.error('ApiClient: Error in getTransactions:', error);
+      throw error;
+    }
   }
 }
 

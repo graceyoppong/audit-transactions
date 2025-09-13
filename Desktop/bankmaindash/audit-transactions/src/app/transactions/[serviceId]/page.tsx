@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
@@ -9,8 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TransactionTable from "@/components/TransactionTable";
 import FilterModal, { FilterCriteria } from "@/components/FilterModal";
 import ExportDropdown from "@/components/ExportDropdown";
-import { mockTransactions, cardData, Transaction } from "@/lib/mockData";
+import { Transaction } from "@/lib/mockData";
 import { exportToPDF, exportToExcel, exportToCSV } from "@/lib/exportUtils";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useService } from "@/hooks/useService";
 import {
   ArrowLeft,
   Filter,
@@ -19,6 +21,9 @@ import {
   Clock,
   XCircle,
   DollarSign,
+  RefreshCw,
+  AlertCircle,
+  Globe,
 } from "lucide-react";
 
 const TransactionDetails: React.FC = () => {
@@ -27,103 +32,198 @@ const TransactionDetails: React.FC = () => {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filteredTransactions, setFilteredTransactions] = useState<
-    Transaction[]
-  >([]);
-  const [appliedFilters, setAppliedFilters] = useState<FilterCriteria | null>(
-    null
-  );
+  const [appliedFilters, setAppliedFilters] = useState<FilterCriteria | null>(null);
+  const [activeStatFilter, setActiveStatFilter] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
 
-  const cardInfo = cardData.find((card) => card.id === serviceId);
-  const allTransactions = serviceId ? mockTransactions[serviceId] || [] : [];
+  // Fetch transactions from API
+  const { transactions: apiTransactions, loading: transactionsLoading, error: transactionsError, refetch } = useTransactions(serviceId);
+  
+  // Fetch service details from API
+  const { service, loading: serviceLoading, error: serviceError } = useService(serviceId);
 
-  // Filter transactions for last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // Reset logo error when service changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [service?.logo_url]);
 
-  const last30DaysTransactions = allTransactions.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-    return transactionDate >= thirtyDaysAgo;
-  });
+  // Create card info from API service data
+  const cardInfo = useMemo(() => {
+    if (!service) return null;
+    
+    return {
+      id: service.id.toString(),
+      title: service.name,
+      description: service.description,
+      logoUrl: service.logo_url,
+    };
+  }, [service]);
 
-  const transactions = appliedFilters
-    ? filteredTransactions
-    : last30DaysTransactions;
+  const loading = transactionsLoading || serviceLoading;
+  const error = transactionsError || serviceError;
+
+  // Filter transactions from start of current month (default) or by applied date filters
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const baseTransactions = useMemo(() => {
+    // If date filters are applied, use them instead of default current month filter
+    if (appliedFilters && (appliedFilters.dateFrom || appliedFilters.dateTo)) {
+      return apiTransactions.filter((transaction: Transaction) => {
+        const transactionDate = new Date(transaction.date);
+        let includeTransaction = true;
+
+        if (appliedFilters.dateFrom) {
+          includeTransaction = includeTransaction && transactionDate >= appliedFilters.dateFrom;
+        }
+
+        if (appliedFilters.dateTo) {
+          // Set time to end of day for dateTo
+          const endOfDay = new Date(appliedFilters.dateTo);
+          endOfDay.setHours(23, 59, 59, 999);
+          includeTransaction = includeTransaction && transactionDate <= endOfDay;
+        }
+
+        return includeTransaction;
+      });
+    } else {
+      // Default: filter by current month
+      return apiTransactions.filter((transaction: Transaction) => {
+        const transactionDate = new Date(transaction.date);
+        return transactionDate >= startOfMonth;
+      });
+    }
+  }, [apiTransactions, appliedFilters]);
+
+  // Apply filters to transactions
+  const transactions = useMemo(() => {
+    let filtered = [...baseTransactions];
+
+    // Apply stat card filter first
+    if (activeStatFilter) {
+      switch (activeStatFilter) {
+        case 'completed':
+          filtered = filtered.filter((t: Transaction) => t.status === "completed");
+          break;
+        case 'pending':
+          filtered = filtered.filter((t: Transaction) => t.status === "pending");
+          break;
+        case 'failed':
+          filtered = filtered.filter((t: Transaction) => t.status === "failed");
+          break;
+        // 'total' shows all transactions, so no additional filtering needed
+      }
+    }
+
+    // Apply additional filters if any (excluding date filters since they're already applied in baseTransactions)
+    if (appliedFilters) {
+      if (appliedFilters.search) {
+        filtered = filtered.filter(
+          (t: Transaction) =>
+            t.description.toLowerCase().includes(appliedFilters.search!.toLowerCase()) ||
+            t.reference.toLowerCase().includes(appliedFilters.search!.toLowerCase())
+        );
+      }
+
+      if (appliedFilters.accountNumber) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.accountNumber
+            ?.toLowerCase()
+            .includes(appliedFilters.accountNumber!.toLowerCase())
+        );
+      }
+
+      if (appliedFilters.status && appliedFilters.status !== "all") {
+        filtered = filtered.filter((t: Transaction) => t.status === appliedFilters.status);
+      }
+
+      if (appliedFilters.type && appliedFilters.type !== "all") {
+        filtered = filtered.filter((t: Transaction) => t.type === appliedFilters.type);
+      }
+
+      if (appliedFilters.phoneNumber) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.phoneNumber?.toLowerCase().includes(appliedFilters.phoneNumber!.toLowerCase())
+        );
+      }
+
+      if (appliedFilters.meterNumber) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.meterNumber?.toLowerCase().includes(appliedFilters.meterNumber!.toLowerCase())
+        );
+      }
+
+      if (appliedFilters.smartCardNumber) {
+        filtered = filtered.filter((t: Transaction) =>
+          t.smartCardNumber
+            ?.toLowerCase()
+            .includes(appliedFilters.smartCardNumber!.toLowerCase())
+        );
+      }
+
+      // Note: dateFrom and dateTo are already handled in baseTransactions
+
+      if (appliedFilters.amountFrom) {
+        filtered = filtered.filter(
+          (t: Transaction) => t.amount >= parseFloat(appliedFilters.amountFrom!)
+        );
+      }
+
+      if (appliedFilters.amountTo) {
+        filtered = filtered.filter(
+          (t: Transaction) => t.amount <= parseFloat(appliedFilters.amountTo!)
+        );
+      }
+    }
+
+    return filtered;
+  }, [baseTransactions, appliedFilters, activeStatFilter]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   const handleApplyFilters = (filters: FilterCriteria) => {
-    let filtered = [...last30DaysTransactions];
-
-    if (filters.search) {
-      filtered = filtered.filter(
-        (t) =>
-          t.description.toLowerCase().includes(filters.search.toLowerCase()) ||
-          t.reference.toLowerCase().includes(filters.search.toLowerCase())
-      );
-    }
-
-    if (filters.accountNumber) {
-      filtered = filtered.filter((t) =>
-        t.accountNumber
-          ?.toLowerCase()
-          .includes(filters.accountNumber.toLowerCase())
-      );
-    }
-
-    if (filters.status && filters.status !== "all") {
-      filtered = filtered.filter((t) => t.status === filters.status);
-    }
-
-    if (filters.type && filters.type !== "all") {
-      filtered = filtered.filter((t) => t.type === filters.type);
-    }
-
-    if (filters.phoneNumber) {
-      filtered = filtered.filter((t) =>
-        t.phoneNumber?.toLowerCase().includes(filters.phoneNumber.toLowerCase())
-      );
-    }
-
-    if (filters.meterNumber) {
-      filtered = filtered.filter((t) =>
-        t.meterNumber?.toLowerCase().includes(filters.meterNumber.toLowerCase())
-      );
-    }
-
-    if (filters.smartCardNumber) {
-      filtered = filtered.filter((t) =>
-        t.smartCardNumber
-          ?.toLowerCase()
-          .includes(filters.smartCardNumber.toLowerCase())
-      );
-    }
-
-    if (filters.dateFrom) {
-      filtered = filtered.filter((t) => new Date(t.date) >= filters.dateFrom!);
-    }
-
-    if (filters.dateTo) {
-      filtered = filtered.filter((t) => new Date(t.date) <= filters.dateTo!);
-    }
-
-    if (filters.amountFrom) {
-      filtered = filtered.filter(
-        (t) => t.amount >= parseFloat(filters.amountFrom)
-      );
-    }
-
-    if (filters.amountTo) {
-      filtered = filtered.filter(
-        (t) => t.amount <= parseFloat(filters.amountTo)
-      );
-    }
-
-    setFilteredTransactions(filtered);
     setAppliedFilters(filters);
+    // Clear stat filter when applying other filters
+    if (filters.status !== "all") {
+      setActiveStatFilter(null);
+    }
   };
+
+  const handleStatCardClick = (statType: string) => {
+    // Toggle filter: if same stat is clicked, clear it; otherwise set new stat
+    if (activeStatFilter === statType) {
+      setActiveStatFilter(null);
+    } else {
+      setActiveStatFilter(statType);
+      // Clear any existing status filter from modal when using stat cards
+      if (appliedFilters?.status !== "all") {
+        setAppliedFilters(prev => prev ? { ...prev, status: "all" } : null);
+      }
+    }
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    // Service data will refresh automatically when component re-renders
+  };
+
+  // Map numeric service ID to filter service type
+  const getFilterServiceType = (id: string): string => {
+    const serviceTypeMap: Record<string, string> = {
+      '5': 'wallet-to-acc',
+      '6': 'acc-to-wallet',
+      '7': 'airtime',
+      '8': 'multichoice',
+      '9': 'ecg',
+      '10': 'water',
+    };
+    return serviceTypeMap[id] || id;
+  };
+
+  const filterServiceType = getFilterServiceType(serviceId);
 
   const handleExportPDF = () => {
     const filename = `${cardInfo?.title
@@ -134,7 +234,7 @@ const TransactionDetails: React.FC = () => {
     exportToPDF(transactions, {
       filename,
       title: `${cardInfo?.title} - Transaction Report`,
-      serviceType: serviceId,
+      serviceType: filterServiceType,
     });
   };
 
@@ -147,7 +247,7 @@ const TransactionDetails: React.FC = () => {
     exportToExcel(transactions, {
       filename,
       title: `${cardInfo?.title} - Transaction Report`,
-      serviceType: serviceId,
+      serviceType: filterServiceType,
     });
   };
 
@@ -159,16 +259,51 @@ const TransactionDetails: React.FC = () => {
     }.csv`;
     exportToCSV(transactions, {
       filename,
-      serviceType: serviceId,
+      serviceType: filterServiceType,
     });
   };
+
+  if (serviceLoading && !service) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Loading Service Details...
+          </h1>
+        </div>
+      </div>
+    );
+  }
+
+  if (serviceError || (!serviceLoading && !service)) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Service Not Found
+          </h1>
+          {serviceError && (
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              {serviceError}
+            </p>
+          )}
+          <Button onClick={() => router.push("/dashboard")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!cardInfo) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Service Not Found
+            Service Information Unavailable
           </h1>
           <Button onClick={() => router.push("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -179,14 +314,16 @@ const TransactionDetails: React.FC = () => {
     );
   }
 
-  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const completedCount = transactions.filter(
-    (t) => t.status === "completed"
+  // Calculate statistics from base transactions (not filtered by status/other criteria)
+  const allTransactionsAmount = baseTransactions.reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+  const filteredTransactionsAmount = transactions.reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+  const completedCount = baseTransactions.filter(
+    (t: Transaction) => t.status === "completed"
   ).length;
-  const pendingCount = transactions.filter(
-    (t) => t.status === "pending"
+  const pendingCount = baseTransactions.filter(
+    (t: Transaction) => t.status === "pending"
   ).length;
-  const failedCount = transactions.filter((t) => t.status === "failed").length;
+  const failedCount = baseTransactions.filter((t: Transaction) => t.status === "failed").length;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -212,11 +349,22 @@ const TransactionDetails: React.FC = () => {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div className="flex items-center space-x-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-r ${cardInfo.color} flex items-center justify-center text-white text-xl`}
-                  >
-                    {cardInfo.icon}
-                  </div>
+                  {cardInfo.logoUrl && !logoError ? (
+                    <img
+                      src={cardInfo.logoUrl}
+                      alt={cardInfo.title}
+                      className="w-12 h-12 object-contain rounded-lg"
+                      onError={() => {
+                        console.error(`Failed to load logo for ${cardInfo.title}:`, cardInfo.logoUrl);
+                        setLogoError(true);
+                      }}
+                      onLoad={() => {
+                        console.log(`Successfully loaded logo for ${cardInfo.title}:`, cardInfo.logoUrl);
+                      }}
+                    />
+                  ) : (
+                    <Globe className="w-12 h-12 text-gray-600 dark:text-gray-400" />
+                  )}
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                       {cardInfo.title}
@@ -225,7 +373,11 @@ const TransactionDetails: React.FC = () => {
                       {cardInfo.description}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-500">
-                      Last 30 days
+                      {loading ? "Loading..." : `Service ID: ${serviceId} • ${
+                        appliedFilters && (appliedFilters.dateFrom || appliedFilters.dateTo) 
+                          ? 'Custom date range' 
+                          : 'Current month'
+                      }`}
                     </p>
                   </div>
                 </div>
@@ -235,7 +387,17 @@ const TransactionDetails: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowFilterModal(true)}
+                  disabled={loading}
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filter
@@ -248,9 +410,43 @@ const TransactionDetails: React.FC = () => {
               </div>
             </div>
 
+            {/* Error State */}
+            {error && (
+              <div className="mb-6">
+                <Card className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      <div>
+                        <p className="text-red-800 dark:text-red-200 font-medium">
+                          Failed to load transactions
+                        </p>
+                        <p className="text-red-600 dark:text-red-400 text-sm">
+                          {error}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        className="ml-auto"
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  activeStatFilter === 'total' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950' : ''
+                }`}
+                onClick={() => handleStatCardClick('total')}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -261,15 +457,22 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {transactions.length}
+                    {loading ? "..." : baseTransactions.length}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Last 30 days
+                    {appliedFilters && (appliedFilters.dateFrom || appliedFilters.dateTo) 
+                      ? 'Custom range' 
+                      : 'Current month'}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  activeStatFilter === 'completed' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-950' : ''
+                }`}
+                onClick={() => handleStatCardClick('completed')}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -280,7 +483,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {completedCount}
+                    {loading ? "..." : completedCount}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Successful transactions
@@ -288,7 +491,12 @@ const TransactionDetails: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  activeStatFilter === 'pending' ? 'ring-2 ring-yellow-500 bg-yellow-50 dark:bg-yellow-950' : ''
+                }`}
+                onClick={() => handleStatCardClick('pending')}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -299,7 +507,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {pendingCount}
+                    {loading ? "..." : pendingCount}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     In progress
@@ -307,7 +515,12 @@ const TransactionDetails: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  activeStatFilter === 'failed' ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-950' : ''
+                }`}
+                onClick={() => handleStatCardClick('failed')}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -318,7 +531,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {failedCount}
+                    {loading ? "..." : failedCount}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Unsuccessful transactions
@@ -337,10 +550,10 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    GH₵ {totalAmount.toFixed(2)}
+                    {loading ? "..." : `GH₵ ${(activeStatFilter ? filteredTransactionsAmount : allTransactionsAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Total volume
+                    {activeStatFilter ? `Total for ${activeStatFilter} transactions` : 'Total volume'}
                   </p>
                 </CardContent>
               </Card>
@@ -349,15 +562,46 @@ const TransactionDetails: React.FC = () => {
             {/* Transactions Table */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-semibold">
-                  Transaction History
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold">
+                    Transaction History
+                    {loading && (
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        Loading...
+                      </span>
+                    )}
+                    {activeStatFilter && (
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        • Filtered by: {activeStatFilter === 'total' ? 'All' : activeStatFilter.charAt(0).toUpperCase() + activeStatFilter.slice(1)}
+                      </span>
+                    )}
+                  </CardTitle>
+                  {activeStatFilter && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveStatFilter(null)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      Clear Filter
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <TransactionTable
-                  transactions={transactions}
-                  serviceType={serviceId}
-                />
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-500">Loading transactions...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <TransactionTable
+                    transactions={transactions}
+                    serviceType={filterServiceType}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -369,7 +613,7 @@ const TransactionDetails: React.FC = () => {
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         onApplyFilters={handleApplyFilters}
-        serviceType={serviceId || ""}
+        serviceType={filterServiceType}
       />
     </div>
   );

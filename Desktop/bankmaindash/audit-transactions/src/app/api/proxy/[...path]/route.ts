@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_BASE_URL = 'http://192.168.1.90:3000';
+const BACKEND_BASE_URL = 'https://w490nv3x-3000.uks1.devtunnels.ms/api';
 
 export async function GET(
   request: NextRequest,
@@ -37,7 +37,9 @@ async function proxyRequest(
 ) {
   try {
     const path = pathSegments.join('/');
-    const url = `${BACKEND_BASE_URL}/${path}`;
+    const { searchParams } = new URL(request.url);
+    const queryString = searchParams.toString();
+    const url = `${BACKEND_BASE_URL}/${path}${queryString ? `?${queryString}` : ''}`;
     
     // Get the request body if it exists
     let body = undefined;

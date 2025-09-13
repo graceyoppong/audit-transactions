@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight, Globe } from "lucide-react";
 
 interface TransactionCardProps {
@@ -20,6 +21,7 @@ interface TransactionCardProps {
   transactionCount: number;
   onClick: () => void;
   logoUrl?: string;
+  isLoadingCount?: boolean;
 }
 
 const TransactionCard: React.FC<TransactionCardProps> = ({
@@ -30,6 +32,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   transactionCount,
   onClick,
   logoUrl,
+  isLoadingCount = false,
 }) => {
   console.log('TransactionCard:', title, 'received logoUrl:', logoUrl);
   
@@ -104,7 +107,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
       <CardContent>
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {transactionCount} transaction{transactionCount !== 1 ? "s" : ""}
+            {isLoadingCount ? (
+              <Skeleton className="h-4 w-20" />
+            ) : (
+              `${transactionCount} transaction${transactionCount !== 1 ? "s" : ""}`
+            )}
           </div>
           <Button
             variant="ghost"

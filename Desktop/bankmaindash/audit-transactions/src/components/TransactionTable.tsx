@@ -68,93 +68,52 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     }
   };
 
-  const formatAmount = (amount: number) => {
-    return `GH₵ ${amount.toFixed(2)}`;
+  const formatAmount = (amount: number | string) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `GH₵ ${numAmount.toFixed(2)}`;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-GB", {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
+    }) + " " + date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  const getServiceSpecificColumns = () => {
-    switch (serviceType) {
-      case "acc-to-wallet":
-      case "wallet-to-acc":
-        return ["Sender", "Recipient", "Account Number"];
-      case "airtime":
-        return ["Phone Number", "Account Number"];
-      case "ecg":
-      case "water":
-        return ["Meter Number", "Account Number"];
-      case "multichoice":
-        return ["Smart Card Number", "Account Number"];
-      default:
-        return ["Account Number"];
+  const getTransactionStatus = (transaction: Transaction) => {
+    // Use the new database fields if available, fallback to existing status
+    if (transaction.transferstatus) {
+      if (transaction.transferstatus.toLowerCase().includes('success')) return 'completed';
+      if (transaction.transferstatus.toLowerCase().includes('pending') || 
+          transaction.transferstatus.toLowerCase().includes('processing')) return 'pending';
+      return 'failed';
     }
+    return transaction.status;
   };
 
-  const renderServiceSpecificData = (transaction: Transaction) => {
-    switch (serviceType) {
-      case "acc-to-wallet":
-      case "wallet-to-acc":
-        return (
-          <>
-            <TableCell className="text-gray-700 dark:text-gray-300">
-              {transaction.sender || "-"}
-            </TableCell>
-            <TableCell className="text-gray-700 dark:text-gray-300">
-              {transaction.recipient || "-"}
-            </TableCell>
-            <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-              {transaction.accountNumber || "-"}
-            </TableCell>
-          </>
-        );
-      case "airtime":
-        return (
-          <>
-            <TableCell className="text-gray-700 dark:text-gray-300">
-              {transaction.phoneNumber || "-"}
-            </TableCell>
-            <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-              {transaction.accountNumber || "-"}
-            </TableCell>
-          </>
-        );
-      case "ecg":
-      case "water":
-        return (
-          <>
-            <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-              {transaction.meterNumber || "-"}
-            </TableCell>
-            <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-              {transaction.accountNumber || "-"}
-            </TableCell>
-          </>
-        );
-      case "multichoice":
-        return (
-          <>
-            <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-              {transaction.smartCardNumber || "-"}
-            </TableCell>
-            <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-              {transaction.accountNumber || "-"}
-            </TableCell>
-          </>
-        );
-      default:
-        return (
-          <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-            {transaction.accountNumber || "-"}
-          </TableCell>
-        );
-    }
+  const getSenderInfo = (transaction: Transaction) => {
+    return transaction.senderaccount || transaction.sender || transaction.customername || "-";
+  };
+
+  const getReceiverInfo = (transaction: Transaction) => {
+    return transaction.receiveraccount || transaction.recipient || transaction.receivername || "-";
+  };
+
+  const getTransactionId = (transaction: Transaction) => {
+    return transaction.transactionid || transaction.reference || transaction.id;
+  };
+
+  const getBatchNumber = (transaction: Transaction) => {
+    return transaction.batchnumber || transaction.reference || "-";
+  };
+
+  const getDescription = (transaction: Transaction) => {
+    return transaction.narration || transaction.description || "-";
   };
 
   // Pagination logic
@@ -213,8 +172,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     return pages;
   };
 
-  const serviceSpecificColumns = getServiceSpecificColumns();
-
   return (
     <div className="space-y-4">
       {/* Items per page dropdown - Top Right */}
@@ -247,30 +204,28 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           <TableHeader>
             <TableRow className="border-gray-200 dark:border-gray-700">
               <TableHead className="text-gray-900 dark:text-gray-100">
-                Date
+                Transaction ID
+              </TableHead>
+              <TableHead className="text-gray-900 dark:text-gray-100">
+                Batch No.
+              </TableHead>
+              <TableHead className="text-gray-900 dark:text-gray-100">
+                Sender
+              </TableHead>
+              <TableHead className="text-gray-900 dark:text-gray-100">
+                Receiver
+              </TableHead>
+              <TableHead className="text-gray-900 dark:text-gray-100">
+                Amount
               </TableHead>
               <TableHead className="text-gray-900 dark:text-gray-100">
                 Description
               </TableHead>
               <TableHead className="text-gray-900 dark:text-gray-100">
-                Reference
-              </TableHead>
-              {serviceSpecificColumns.map((column) => (
-                <TableHead
-                  key={column}
-                  className="text-gray-900 dark:text-gray-100"
-                >
-                  {column}
-                </TableHead>
-              ))}
-              <TableHead className="text-gray-900 dark:text-gray-100">
-                Amount
-              </TableHead>
-              <TableHead className="text-gray-900 dark:text-gray-100">
-                Type
-              </TableHead>
-              <TableHead className="text-gray-900 dark:text-gray-100">
                 Status
+              </TableHead>
+              <TableHead className="text-gray-900 dark:text-gray-100">
+                Date & Time
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -278,7 +233,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             {currentTransactions.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7 + serviceSpecificColumns.length}
+                  colSpan={8}
                   className="text-center py-8 text-gray-500 dark:text-gray-400"
                 >
                   No transactions found
@@ -291,36 +246,32 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   className="border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   onClick={() => handleTransactionClick(transaction)}
                 >
-                  <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatDate(transaction.date)}
+                  <TableCell className="font-mono text-sm text-gray-900 dark:text-gray-100">
+                    {getTransactionId(transaction)}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm text-gray-700 dark:text-gray-300">
+                    {getBatchNumber(transaction)}
                   </TableCell>
                   <TableCell className="text-gray-700 dark:text-gray-300">
-                    {transaction.description}
+                    {getSenderInfo(transaction)}
                   </TableCell>
-                  <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
-                    {transaction.reference}
+                  <TableCell className="text-gray-700 dark:text-gray-300">
+                    {getReceiverInfo(transaction)}
                   </TableCell>
-                  {renderServiceSpecificData(transaction)}
                   <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                     {formatAmount(transaction.amount)}
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        transaction.type === "credit"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                      }
-                    >
-                      {transaction.type.charAt(0).toUpperCase() +
-                        transaction.type.slice(1)}
-                    </Badge>
+                  <TableCell className="text-gray-700 dark:text-gray-300">
+                    {getDescription(transaction)}
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(transaction.status)}>
-                      {transaction.status.charAt(0).toUpperCase() +
-                        transaction.status.slice(1)}
+                    <Badge className={getStatusColor(getTransactionStatus(transaction))}>
+                      {getTransactionStatus(transaction).charAt(0).toUpperCase() +
+                        getTransactionStatus(transaction).slice(1)}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                    {formatDate(transaction.postingdate || transaction.date)}
                   </TableCell>
                 </TableRow>
               ))

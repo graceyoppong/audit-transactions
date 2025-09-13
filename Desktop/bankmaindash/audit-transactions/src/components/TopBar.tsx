@@ -61,7 +61,7 @@ const TopBar: React.FC<TopBarProps> = ({ onSidebarToggle }) => {
         
         <div className="hidden lg:block">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Welcome back, {user?.username}!
+            Welcome back, {user?.username}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Here&apos;s what&apos;s happening with your banking services today.

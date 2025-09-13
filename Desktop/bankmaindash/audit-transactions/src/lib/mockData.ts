@@ -16,6 +16,43 @@ export interface Transaction {
   responseBody?: Record<string, unknown>;
   errorMessage?: string;
   processingTime?: number; // in milliseconds
+  
+  // New fields to match database structure
+  transactionid?: string;
+  batchnumber?: string;
+  senderaccount?: string;
+  receiveraccount?: string;
+  sendertelephone?: string;
+  receivertelephone?: string;
+  currency?: string;
+  payoutcurrency?: string;
+  statuscode?: string;
+  receivername?: string;
+  customernumber?: string;
+  customername?: string;
+  postingdate?: string;
+  transtype?: string;
+  confirmationcode?: string;
+  confirmationmessage?: string;
+  transferstatus?: string;
+  channel?: string;
+  username?: string;
+  param1?: string;
+  param2?: string;
+  param3?: string;
+  param4?: string;
+  param5?: string;
+  param6?: string;
+  narration?: string;
+  data?: string;
+  responsecode?: string;
+  responsemessage?: string;
+  callback?: string;
+  updatedAt?: string;
+  updatedat?: string;
+  requestpayload?: string;
+  responsepayload?: string;
+  exceptions?: string;
 }
 
 // Generate dates for the last 90 days
