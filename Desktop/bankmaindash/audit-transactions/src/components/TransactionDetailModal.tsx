@@ -213,19 +213,20 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            {getStatusIcon(transaction.status)}
-            <span>Transaction Details</span>
-            <Badge className={getStatusColor(transaction.status)}>
-              {transaction.status.charAt(0).toUpperCase() +
-                transaction.status.slice(1)}
-            </Badge>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <div className="p-6 pb-20">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="flex items-center space-x-2">
+              {getStatusIcon(transaction.status)}
+              <span>Transaction Details</span>
+              <Badge className={getStatusColor(transaction.status)}>
+                {transaction.status.charAt(0).toUpperCase() +
+                  transaction.status.slice(1)}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-6">
+          <div className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
@@ -598,31 +599,29 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <CardTitle className="text-lg">Request Payload</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-80 w-full">
-                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                      <code className="language-json whitespace-pre-wrap">
-                        {(() => {
-                          // Try to use the real data format first
-                          if (transaction.requestpayload) {
-                            try {
-                              return formatJsonWithSyntaxHighlighting(
-                                JSON.parse(transaction.requestpayload)
-                              );
-                            } catch {
-                              return transaction.requestpayload;
-                            }
-                          }
-                          // Fallback to the mock data format
-                          else if (transaction.requestBody) {
+                  <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                    <code className="language-json whitespace-pre-wrap">
+                      {(() => {
+                        // Try to use the real data format first
+                        if (transaction.requestpayload) {
+                          try {
                             return formatJsonWithSyntaxHighlighting(
-                              transaction.requestBody
+                              JSON.parse(transaction.requestpayload)
                             );
+                          } catch {
+                            return transaction.requestpayload;
                           }
-                          return "No request payload available";
-                        })()}
-                      </code>
-                    </pre>
-                  </ScrollArea>
+                        }
+                        // Fallback to the mock data format
+                        else if (transaction.requestBody) {
+                          return formatJsonWithSyntaxHighlighting(
+                            transaction.requestBody
+                          );
+                        }
+                        return "No request payload available";
+                      })()}
+                    </code>
+                  </pre>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -633,31 +632,29 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <CardTitle className="text-lg">Response Payload</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-80 w-full">
-                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                      <code className="language-json whitespace-pre-wrap">
-                        {(() => {
-                          // Try to use the real data format first
-                          if (transaction.responsepayload) {
-                            try {
-                              return formatJsonWithSyntaxHighlighting(
-                                JSON.parse(transaction.responsepayload)
-                              );
-                            } catch {
-                              return transaction.responsepayload;
-                            }
-                          }
-                          // Fallback to the mock data format
-                          else if (transaction.responseBody) {
+                  <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                    <code className="language-json whitespace-pre-wrap">
+                      {(() => {
+                        // Try to use the real data format first
+                        if (transaction.responsepayload) {
+                          try {
                             return formatJsonWithSyntaxHighlighting(
-                              transaction.responseBody
+                              JSON.parse(transaction.responsepayload)
                             );
+                          } catch {
+                            return transaction.responsepayload;
                           }
-                          return "No response payload available";
-                        })()}
-                      </code>
-                    </pre>
-                  </ScrollArea>
+                        }
+                        // Fallback to the mock data format
+                        else if (transaction.responseBody) {
+                          return formatJsonWithSyntaxHighlighting(
+                            transaction.responseBody
+                          );
+                        }
+                        return "No response payload available";
+                      })()}
+                    </code>
+                  </pre>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -671,28 +668,27 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-80 w-full">
-                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                      <code className="language-json whitespace-pre-wrap">
-                        {(() => {
-                          if (transaction.callback) {
-                            try {
-                              return formatJsonWithSyntaxHighlighting(
-                                JSON.parse(transaction.callback)
-                              );
-                            } catch {
-                              return transaction.callback;
-                            }
+                  <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                    <code className="language-json whitespace-pre-wrap">
+                      {(() => {
+                        if (transaction.callback) {
+                          try {
+                            return formatJsonWithSyntaxHighlighting(
+                              JSON.parse(transaction.callback)
+                            );
+                          } catch {
+                            return transaction.callback;
                           }
-                          return "No callback data available";
-                        })()}
-                      </code>
-                    </pre>
-                  </ScrollArea>
+                        }
+                        return "No callback data available";
+                      })()}
+                    </code>
+                  </pre>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
