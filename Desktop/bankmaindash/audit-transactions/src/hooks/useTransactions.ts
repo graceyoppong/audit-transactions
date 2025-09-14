@@ -113,6 +113,43 @@ const mapApiTransactionToTransaction = (apiTransaction: any): Transaction => {
     },
     errorMessage: apiTransaction.exceptions || (status === "failed" ? apiTransaction.responsemessage : undefined),
     processingTime: undefined, // Not available in this API format
+    
+    // Include all the original API fields for the detailed modal
+    transactionid: apiTransaction.transactionid,
+    batchnumber: apiTransaction.batchnumber,
+    senderaccount: apiTransaction.senderaccount,
+    receiveraccount: apiTransaction.receiveraccount,
+    sendertelephone: apiTransaction.sendertelephone,
+    receivertelephone: apiTransaction.receivertelephone,
+    currency: apiTransaction.currency,
+    payoutcurrency: apiTransaction.payoutcurrency,
+    statuscode: apiTransaction.statuscode,
+    receivername: apiTransaction.receivername,
+    customernumber: apiTransaction.customernumber,
+    customername: apiTransaction.customername,
+    postingdate: apiTransaction.postingdate,
+    transtype: apiTransaction.transtype,
+    confirmationcode: apiTransaction.confirmationcode,
+    confirmationmessage: apiTransaction.confirmationmessage,
+    transferstatus: apiTransaction.transferstatus,
+    channel: apiTransaction.channel,
+    username: apiTransaction.username,
+    param1: apiTransaction.param1,
+    param2: apiTransaction.param2,
+    param3: apiTransaction.param3,
+    param4: apiTransaction.param4,
+    param5: apiTransaction.param5,
+    param6: apiTransaction.param6,
+    narration: apiTransaction.narration,
+    data: apiTransaction.data,
+    responsecode: apiTransaction.responsecode,
+    responsemessage: apiTransaction.responsemessage,
+    callback: apiTransaction.callback, // Preserve the original callback field
+    updatedAt: apiTransaction.updatedAt,
+    updatedat: apiTransaction.updatedat,
+    requestpayload: apiTransaction.requestpayload, // Preserve the original payload fields
+    responsepayload: apiTransaction.responsepayload,
+    exceptions: apiTransaction.exceptions,
   };
 };
 

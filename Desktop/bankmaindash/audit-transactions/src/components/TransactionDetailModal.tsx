@@ -39,28 +39,32 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   const getStatusIcon = (status: string) => {
     // Handle real data format status mapping
-    const normalizedStatus = status.toLowerCase();
-    if (normalizedStatus === "completed" || normalizedStatus === "success") {
+    const normalizedStatus = status?.toLowerCase() || '';
+    if (normalizedStatus === "completed" || normalizedStatus === "success" || 
+        normalizedStatus === "successfully processed transaction." ||
+        (transaction.transferstatus && transaction.transferstatus.toLowerCase().includes("success"))) {
       return <CheckCircle className="w-5 h-5 text-green-500" />;
     } else if (normalizedStatus === "pending" || normalizedStatus === "processing") {
       return <Clock className="w-5 h-5 text-yellow-500" />;
     } else if (normalizedStatus === "failed" || normalizedStatus === "error") {
       return <XCircle className="w-5 h-5 text-red-500" />;
     }
-    return null;
+    return <CheckCircle className="w-5 h-5 text-green-500" />; // Default to success for real data
   };
 
   const getStatusColor = (status: string) => {
     // Handle real data format status mapping
-    const normalizedStatus = status.toLowerCase();
-    if (normalizedStatus === "completed" || normalizedStatus === "success") {
+    const normalizedStatus = status?.toLowerCase() || '';
+    if (normalizedStatus === "completed" || normalizedStatus === "success" ||
+        normalizedStatus === "successfully processed transaction." ||
+        (transaction.transferstatus && transaction.transferstatus.toLowerCase().includes("success"))) {
       return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
     } else if (normalizedStatus === "pending" || normalizedStatus === "processing") {
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
     } else if (normalizedStatus === "failed" || normalizedStatus === "error") {
       return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
     }
-    return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+    return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"; // Default to success for real data
   };
 
   const formatDate = (dateString: string) => {
@@ -135,33 +139,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       });
     }
 
-    // Customer Number
-    if (transaction.customernumber) {
-      info.push({
-        label: "Customer Number",
-        value: transaction.customernumber,
-        icon: <User className="w-4 h-4" />,
-      });
-    }
-
-    // Customer Name
-    if (transaction.customername) {
-      info.push({
-        label: "Customer Name",
-        value: transaction.customername,
-        icon: <User className="w-4 h-4" />,
-      });
-    }
-
-    // Channel
-    if (transaction.channel) {
-      info.push({
-        label: "Channel",
-        value: transaction.channel,
-        icon: <Zap className="w-4 h-4" />,
-      });
-    }
-
     return info;
   };
 
@@ -176,11 +153,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         <div className="p-6 pb-20">
           <DialogHeader className="mb-6">
             <DialogTitle className="flex items-center space-x-2">
-              {getStatusIcon(transaction.status)}
+              {getStatusIcon(transaction.status || transaction.transferstatus || "completed")}
               <span>Transaction Details</span>
-              <Badge className={getStatusColor(transaction.status)}>
-                {transaction.status.charAt(0).toUpperCase() +
-                  transaction.status.slice(1)}
+              <Badge className={getStatusColor(transaction.status || transaction.transferstatus || "completed")}>
+                {(transaction.status || transaction.transferstatus || "Completed").charAt(0).toUpperCase() +
+                  (transaction.status || transaction.transferstatus || "Completed").slice(1)}
               </Badge>
             </DialogTitle>
           </DialogHeader>
@@ -199,21 +176,21 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 <div className="grid grid-cols-1 gap-4">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Reference Number
+                      Transaction ID
                     </span>
                     <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
-                      {transaction.reference}
+                      {transaction.transactionid || transaction.reference}
                     </span>
                   </div>
                   
-                  {/* Transaction ID */}
-                  {transaction.transactionid && transaction.transactionid !== transaction.reference && (
+                  {/* Reference Number - only show if different from transaction ID */}
+                  {transaction.reference && transaction.reference !== transaction.transactionid && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Transaction ID
+                        Reference Number
                       </span>
                       <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
-                        {transaction.transactionid}
+                        {transaction.reference}
                       </span>
                     </div>
                   )}
@@ -237,17 +214,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(transaction.date)}</span>
                   </div>
-
-                  {/* Posting Date */}
-                  {transaction.postingdate && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-green-500" />
-                        Posting Date
-                      </span>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(transaction.postingdate)}</span>
-                    </div>
-                  )}
                   
                   <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
@@ -274,66 +240,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       </span>
                     </div>
                   )}
-                  
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Transaction Type
-                    </span>
-                    <div className="flex flex-col items-end space-y-1">
-                      <Badge
-                        className={
-                          transaction.type === "credit"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                        }
-                      >
-                        {transaction.type.charAt(0).toUpperCase() +
-                          transaction.type.slice(1)}
-                      </Badge>
-                      {/* Transaction Type Code */}
-                      {transaction.transtype && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                          Code: {transaction.transtype}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Status Code */}
-                  {transaction.statuscode && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        HTTP Status Code
-                      </span>
-                      <Badge
-                        className={
-                          transaction.statuscode === "200" 
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                        }
-                      >
-                        {transaction.statuscode}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* Response Code */}
-                  {transaction.responsecode && (
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Response Code
-                      </span>
-                      <Badge
-                        className={
-                          transaction.responsecode === "000" 
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                        }
-                      >
-                        {transaction.responsecode}
-                      </Badge>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -351,82 +257,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     {transaction.description || transaction.narration || "No description available"}
                   </p>
                 </div>
-
-                {/* Transfer Status */}
-                {transaction.transferstatus && (
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Transfer Status
-                    </span>
-                    <Badge
-                      className={
-                        transaction.transferstatus.toLowerCase().includes("success") 
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : transaction.transferstatus.toLowerCase().includes("fail")
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                      }
-                    >
-                      {transaction.transferstatus}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Response Message */}
-                {transaction.responsemessage && (
-                  <div className="py-3 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
-                      Provider Response
-                    </span>
-                    <p className="text-sm text-gray-900 dark:text-white bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                      {transaction.responsemessage}
-                    </p>
-                  </div>
-                )}
-
-                {/* Username */}
-                {transaction.username && (
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                      <User className="w-4 h-4 mr-2 text-blue-500" />
-                      Initiated By
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{transaction.username}</span>
-                  </div>
-                )}
-
-                {/* Confirmation details */}
-                {transaction.confirmationcode && (
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Confirmation Code
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-green-600 dark:text-green-400">{transaction.confirmationcode}</span>
-                  </div>
-                )}
-
-                {transaction.confirmationmessage && (
-                  <div className="py-3 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
-                      Confirmation Message
-                    </span>
-                    <p className="text-sm text-gray-900 dark:text-white bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                      {transaction.confirmationmessage}
-                    </p>
-                  </div>
-                )}
-
-                {/* Additional parameters */}
-                {transaction.param1 && (
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Service Network
-                    </span>
-                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                      {transaction.param1}
-                    </Badge>
-                  </div>
-                )}
 
                 <div className="space-y-3 pt-2">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -450,7 +280,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           </div>
 
           {/* Error Message for Failed Transactions */}
-          {(transaction.status === "failed" && transaction.errorMessage) || transaction.exceptions && (
+          {((transaction.status === "failed" && transaction.errorMessage) || 
+            transaction.exceptions || 
+            (transaction.responsecode && transaction.responsecode !== "000") ||
+            (transaction.statuscode && transaction.statuscode !== "200")) && (
             <Card className="border-red-200 dark:border-red-800">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center space-x-2 text-red-600 dark:text-red-400">
@@ -458,81 +291,21 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <span>Error Details</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {transaction.exceptions && (
-                  <div>
-                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Exceptions:</span>
-                    <p className="text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded-md mt-1">
-                      {transaction.exceptions}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Additional Transaction Metadata */}
-          {(transaction.param2 || transaction.param3 || transaction.param4 || transaction.param5 || transaction.param6 || transaction.data || transaction.updatedat) && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Additional Metadata</CardTitle>
-              </CardHeader>
               <CardContent className="space-y-3">
-                {transaction.param2 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Product ID:</span>
-                    <span className="font-mono text-sm">{transaction.param2}</span>
-                  </div>
-                )}
-                {transaction.param3 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Uniwallet Transaction ID:</span>
-                    <span className="font-mono text-sm">{transaction.param3}</span>
-                  </div>
-                )}
-                {transaction.param4 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Provider Response Code:</span>
-                    <Badge
-                      className={
-                        transaction.param4 === "01" 
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                      }
-                    >
-                      {transaction.param4}
-                    </Badge>
-                  </div>
-                )}
-                {transaction.param5 && (
+                {transaction.errorMessage && (
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">Provider Message:</span>
-                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                      {transaction.param5}
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Error Message:</span>
+                    <p className="text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded-md mt-1">
+                      {transaction.errorMessage}
                     </p>
                   </div>
                 )}
-                {transaction.param6 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Additional Info:</span>
-                    <span className="text-sm">{transaction.param6}</span>
-                  </div>
-                )}
-                {transaction.data && (
+                {transaction.responsecode && transaction.responsecode !== "000" && (
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">Transaction Data:</span>
-                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                      {transaction.data}
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Response Code:</span>
+                    <p className="text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded-md mt-1">
+                      Code: {transaction.responsecode} - {transaction.responsemessage || "Unknown error"}
                     </p>
-                  </div>
-                )}
-                {transaction.updatedat && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400 flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      Last Updated:
-                    </span>
-                    <span className="text-sm">{new Date(transaction.updatedat).toLocaleString()}</span>
                   </div>
                 )}
               </CardContent>
@@ -541,9 +314,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           {/* Request and Response Bodies */}
           <Tabs defaultValue="request" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="request">Request Payload</TabsTrigger>
               <TabsTrigger value="response">Response Payload</TabsTrigger>
+              <TabsTrigger value="callback">Callback Payload</TabsTrigger>
             </TabsList>
 
             <TabsContent value="request" className="mt-4">
@@ -566,6 +340,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                               return transaction.requestpayload;
                             }
                           }
+                          // Fallback to old format for compatibility
+                          if (transaction.requestBody) {
+                            return formatJsonWithSyntaxHighlighting(transaction.requestBody);
+                          }
                           return "No request payload available";
                         })()}
                       </code>
@@ -580,7 +358,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 <CardHeader>
                   <CardTitle className="text-lg">Response Payload</CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Complete response including callback data from the service provider
+                    Initial response from the API endpoint
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -591,14 +369,57 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                           // Use the real API data format
                           if (transaction.responsepayload) {
                             try {
-                              return formatJsonWithSyntaxHighlighting(
-                                JSON.parse(transaction.responsepayload)
-                              );
+                              const parsed = JSON.parse(transaction.responsepayload);
+                              // Check if the message field contains nested JSON
+                              if (parsed.message && typeof parsed.message === 'string') {
+                                try {
+                                  parsed.message = JSON.parse(parsed.message);
+                                } catch {
+                                  // Keep original message if it's not JSON
+                                }
+                              }
+                              return formatJsonWithSyntaxHighlighting(parsed);
                             } catch {
                               return transaction.responsepayload;
                             }
                           }
+                          // Fallback to old format for compatibility
+                          if (transaction.responseBody) {
+                            return formatJsonWithSyntaxHighlighting(transaction.responseBody);
+                          }
                           return "No response payload available";
+                        })()}
+                      </code>
+                    </pre>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="callback" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Callback Payload</CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Final callback response received from the service provider with transaction result
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-96 w-full">
+                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                      <code className="language-json whitespace-pre-wrap">
+                        {(() => {
+                          // Use the real API data format
+                          if (transaction.callback) {
+                            try {
+                              return formatJsonWithSyntaxHighlighting(
+                                JSON.parse(transaction.callback)
+                              );
+                            } catch (e) {
+                              return transaction.callback;
+                            }
+                          }
+                          return "No callback payload available";
                         })()}
                       </code>
                     </pre>
