@@ -2,6 +2,7 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Home,
@@ -22,19 +23,33 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+  const { user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  const menuItems = [
-    { icon: Home, label: "Dashboard", path: "/dashboard" },
-    { icon: CreditCard, label: "Transactions", path: "/transactions" },
-    { icon: BarChart3, label: "Analytics", path: "/analytics" },
-    { icon: UserPlus, label: "User Creation", path: "/user-creation" },
-    { icon: Users, label: "User Management", path: "/user-management" },
-    { icon: Globe, label: "Services", path: "/services" },
-    { icon: Plus, label: "Service Creation", path: "/service-creation" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+  // Admin check - same normalization as other components
+  const normalizeRole = (role: string | undefined) => {
+    if (role && typeof role === 'string') {
+      return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+    }
+    return '';
+  };
+  
+  const isAdmin = normalizeRole(user?.role) === "Admin";
+
+  const allMenuItems = [
+    { icon: Home, label: "Dashboard", path: "/dashboard", adminOnly: false },
+    { icon: CreditCard, label: "Transactions", path: "/transactions", adminOnly: false },
+    { icon: BarChart3, label: "Analytics", path: "/analytics", adminOnly: false },
+    { icon: UserPlus, label: "User Creation", path: "/user-creation", adminOnly: true },
+    { icon: Users, label: "User Management", path: "/user-management", adminOnly: true },
+    { icon: Globe, label: "Services", path: "/services", adminOnly: true },
+    { icon: Plus, label: "Service Creation", path: "/service-creation", adminOnly: true },
+    { icon: Settings, label: "Settings", path: "/settings", adminOnly: false },
   ];
+
+  // Filter menu items based on admin status
+  const menuItems = allMenuItems.filter(item => !item.adminOnly || isAdmin);
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {

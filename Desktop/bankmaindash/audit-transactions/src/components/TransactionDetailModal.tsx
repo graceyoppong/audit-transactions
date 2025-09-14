@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Transaction } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   CheckCircle,
   Clock,
@@ -35,7 +36,25 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { user } = useAuth();
+  
   if (!transaction) return null;
+
+  // Check if user is admin - use same normalization as user management
+  const normalizeRole = (role: string | undefined) => {
+    if (role && typeof role === 'string') {
+      return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+    }
+    return '';
+  };
+  
+  const isAdmin = normalizeRole(user?.role) === "Admin";
+  
+  // Debug logging to check user role
+  console.log("Current user:", user);
+  console.log("User role:", user?.role);
+  console.log("Normalized role:", normalizeRole(user?.role));
+  console.log("Is admin check:", isAdmin);
 
   const getStatusIcon = (status: string) => {
     // Handle real data format status mapping
@@ -109,33 +128,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         label: "Receiver Account",
         value: transaction.receiveraccount,
         icon: <CreditCard className="w-4 h-4" />,
-      });
-    }
-
-    // Sender Telephone
-    if (transaction.sendertelephone) {
-      info.push({
-        label: "Sender Phone",
-        value: transaction.sendertelephone,
-        icon: <Phone className="w-4 h-4" />,
-      });
-    }
-
-    // Receiver Telephone
-    if (transaction.receivertelephone) {
-      info.push({
-        label: "Receiver Phone",
-        value: transaction.receivertelephone,
-        icon: <Phone className="w-4 h-4" />,
-      });
-    }
-
-    // Currency
-    if (transaction.currency) {
-      info.push({
-        label: "Currency",
-        value: transaction.currency,
-        icon: <DollarSign className="w-4 h-4" />,
       });
     }
 
@@ -312,122 +304,124 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             </Card>
           )}
 
-          {/* Request and Response Bodies */}
-          <Tabs defaultValue="request" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="request">Request Payload</TabsTrigger>
-              <TabsTrigger value="response">Response Payload</TabsTrigger>
-              <TabsTrigger value="callback">Callback Payload</TabsTrigger>
-            </TabsList>
+          {/* Request and Response Bodies - Admin Only */}
+          {isAdmin && (
+            <Tabs defaultValue="request" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="request">Request Payload</TabsTrigger>
+                <TabsTrigger value="response">Response Payload</TabsTrigger>
+                <TabsTrigger value="callback">Callback Payload</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="request" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Request Payload</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-96 w-full">
-                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                      <code className="language-json whitespace-pre-wrap">
-                        {(() => {
-                          // Use the real API data format
-                          if (transaction.requestpayload) {
-                            try {
-                              return formatJsonWithSyntaxHighlighting(
-                                JSON.parse(transaction.requestpayload)
-                              );
-                            } catch {
-                              return transaction.requestpayload;
-                            }
-                          }
-                          // Fallback to old format for compatibility
-                          if (transaction.requestBody) {
-                            return formatJsonWithSyntaxHighlighting(transaction.requestBody);
-                          }
-                          return "No request payload available";
-                        })()}
-                      </code>
-                    </pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="response" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Response Payload</CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Initial response from the API endpoint
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-96 w-full">
-                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                      <code className="language-json whitespace-pre-wrap">
-                        {(() => {
-                          // Use the real API data format
-                          if (transaction.responsepayload) {
-                            try {
-                              const parsed = JSON.parse(transaction.responsepayload);
-                              // Check if the message field contains nested JSON
-                              if (parsed.message && typeof parsed.message === 'string') {
-                                try {
-                                  parsed.message = JSON.parse(parsed.message);
-                                } catch {
-                                  // Keep original message if it's not JSON
-                                }
+              <TabsContent value="request" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Request Payload</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-96 w-full">
+                      <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                        <code className="language-json whitespace-pre-wrap">
+                          {(() => {
+                            // Use the real API data format
+                            if (transaction.requestpayload) {
+                              try {
+                                return formatJsonWithSyntaxHighlighting(
+                                  JSON.parse(transaction.requestpayload)
+                                );
+                              } catch {
+                                return transaction.requestpayload;
                               }
-                              return formatJsonWithSyntaxHighlighting(parsed);
-                            } catch {
-                              return transaction.responsepayload;
                             }
-                          }
-                          // Fallback to old format for compatibility
-                          if (transaction.responseBody) {
-                            return formatJsonWithSyntaxHighlighting(transaction.responseBody);
-                          }
-                          return "No response payload available";
-                        })()}
-                      </code>
-                    </pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                            // Fallback to old format for compatibility
+                            if (transaction.requestBody) {
+                              return formatJsonWithSyntaxHighlighting(transaction.requestBody);
+                            }
+                            return "No request payload available";
+                          })()}
+                        </code>
+                      </pre>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="callback" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Callback Payload</CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Final callback response received from the service provider with transaction result
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-96 w-full">
-                    <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
-                      <code className="language-json whitespace-pre-wrap">
-                        {(() => {
-                          // Use the real API data format
-                          if (transaction.callback) {
-                            try {
-                              return formatJsonWithSyntaxHighlighting(
-                                JSON.parse(transaction.callback)
-                              );
-                            } catch (e) {
-                              return transaction.callback;
+              <TabsContent value="response" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Response Payload</CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Initial response from the API endpoint
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-96 w-full">
+                      <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                        <code className="language-json whitespace-pre-wrap">
+                          {(() => {
+                            // Use the real API data format
+                            if (transaction.responsepayload) {
+                              try {
+                                const parsed = JSON.parse(transaction.responsepayload);
+                                // Check if the message field contains nested JSON
+                                if (parsed.message && typeof parsed.message === 'string') {
+                                  try {
+                                    parsed.message = JSON.parse(parsed.message);
+                                  } catch {
+                                    // Keep original message if it's not JSON
+                                  }
+                                }
+                                return formatJsonWithSyntaxHighlighting(parsed);
+                              } catch {
+                                return transaction.responsepayload;
+                              }
                             }
-                          }
-                          return "No callback payload available";
-                        })()}
-                      </code>
-                    </pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                            // Fallback to old format for compatibility
+                            if (transaction.responseBody) {
+                              return formatJsonWithSyntaxHighlighting(transaction.responseBody);
+                            }
+                            return "No response payload available";
+                          })()}
+                        </code>
+                      </pre>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="callback" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Callback Payload</CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Final callback response received from the service provider with transaction result
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-96 w-full">
+                      <pre className="text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto whitespace-pre-wrap break-words">
+                        <code className="language-json whitespace-pre-wrap">
+                          {(() => {
+                            // Use the real API data format
+                            if (transaction.callback) {
+                              try {
+                                return formatJsonWithSyntaxHighlighting(
+                                  JSON.parse(transaction.callback)
+                                );
+                              } catch (e) {
+                                return transaction.callback;
+                              }
+                            }
+                            return "No callback payload available";
+                          })()}
+                        </code>
+                      </pre>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          )}
           </div>
         </div>
       </DialogContent>

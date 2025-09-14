@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 import {
   Users,
@@ -54,13 +55,14 @@ interface User {
   fullName: string;
   email: string;
   jobTitle?: string;
-  role: "Admin" | "Manager" | "User" | "Developer";
+  role: string; // Allow any string to match database values exactly
   memberSince: string;
   status: "Active" | "Inactive";
   lastLogin?: string;
 }
 
 const UserManagement: React.FC = () => {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
@@ -73,6 +75,33 @@ const UserManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+
+  // Admin check - same normalization as other components
+  const normalizeRole = (role: string | undefined) => {
+    if (role && typeof role === 'string') {
+      return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+    }
+    return '';
+  };
+  
+  const isAdmin = normalizeRole(user?.role) === "Admin";
+
+  // Redirect non-admin users
+  useEffect(() => {
+    if (!isAdmin && user) {
+      router.push('/dashboard');
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access User Management.",
+        variant: "destructive",
+      });
+    }
+  }, [isAdmin, user, router, toast]);
+
+  // Don't render anything for non-admin users
+  if (!isAdmin) {
+    return null;
+  }
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -108,15 +137,15 @@ const UserManagement: React.FC = () => {
           // Ensure status is properly typed based on 'active' field
           const userStatus = apiUser.active === true ? 'Active' as const : 'Inactive' as const;
           
-          // Map userRole to our role format
+          // Map userRole to our role format - use exact value from database
           const userRole = (() => {
             const role = apiUser.userRole || apiUser.role;
             if (role && typeof role === 'string') {
-              const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-              return ['Admin', 'Manager', 'User', 'Developer'].includes(normalizedRole) ? normalizedRole : 'User';
+              // Just return the role as-is from the database
+              return role;
             }
             return 'User';
-          })() as 'Admin' | 'Manager' | 'User' | 'Developer';
+          })();
           
           // Create full name from firstName and lastName
           const fullName = `${apiUser.firstName || ''} ${apiUser.lastName || ''}`.trim() || 'Unknown User';
@@ -226,17 +255,45 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = (user: User) => {
-    const newStatus = user.status === "Active" ? "Inactive" : "Active";
-    setUsers(prev => 
-      prev.map(u => 
-        u.id === user.id ? { ...u, status: newStatus } : u
-      )
-    );
-    toast({
-      title: "Status Updated",
-      description: `${user.fullName} is now ${newStatus}.`,
-    });
+  const handleToggleStatus = async (user: User) => {
+    try {
+      const newStatus = user.status === "Active" ? "Inactive" : "Active";
+      
+      // Prepare user data for API call
+      const userData = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        jobTitle: user.jobTitle,
+        userRole: user.role, // Map our 'role' to API's 'userRole'
+        active: newStatus === 'Active' // Map our 'status' to API's 'active' boolean
+      };
+      
+      console.log('UserManagement: Toggling user status:', { userId: user.id, newStatus, userData });
+      
+      // Make API call to update user status
+      const response = await apiClient.updateUser(user.id, userData);
+      console.log('UserManagement: User status updated successfully:', response);
+      
+      // Update local state
+      setUsers(prev => 
+        prev.map(u => 
+          u.id === user.id ? { ...u, status: newStatus } : u
+        )
+      );
+      
+      toast({
+        title: "Status Updated",
+        description: `${user.fullName} is now ${newStatus}.`,
+      });
+    } catch (error: any) {
+      console.error('UserManagement: Error updating user status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user status. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditFormChange = (field: keyof User, value: string) => {
@@ -302,28 +359,34 @@ const UserManagement: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const normalizedStatus = status.toLowerCase();
+    switch (normalizedStatus) {
       case "active":
         return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</Badge>;
       case "inactive":
-        return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">Inactive</Badge>;
+        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Inactive</Badge>;
       case "suspended":
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Suspended</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">Suspended</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   const getRoleBadge = (role: string) => {
-    switch (role) {
+    const normalizedRole = role.toLowerCase();
+    switch (normalizedRole) {
       case "admin":
-        return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">Admin</Badge>;
+        return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">{role}</Badge>;
       case "manager":
-        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Manager</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{role}</Badge>;
       case "supervisor":
-        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">Supervisor</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">{role}</Badge>;
       case "user":
-        return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">User</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">{role}</Badge>;
+      case "developer":
+        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{role}</Badge>;
+      case "viewer":
+        return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300">{role}</Badge>;
       default:
         return <Badge variant="secondary">{role}</Badge>;
     }

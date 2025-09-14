@@ -86,14 +86,21 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   const getTransactionStatus = (transaction: Transaction) => {
-    // Use the new database fields if available, fallback to existing status
-    if (transaction.transferstatus) {
-      if (transaction.transferstatus.toLowerCase().includes('success')) return 'completed';
-      if (transaction.transferstatus.toLowerCase().includes('pending') || 
-          transaction.transferstatus.toLowerCase().includes('processing')) return 'pending';
+    // Use same logic as TransactionDetailModal for consistency
+    const status = transaction.status || transaction.transferstatus || "completed";
+    const normalizedStatus = status?.toLowerCase() || '';
+    
+    if (normalizedStatus === "completed" || normalizedStatus === "success" || 
+        normalizedStatus === "successfully processed transaction." ||
+        (transaction.transferstatus && transaction.transferstatus.toLowerCase().includes("success"))) {
+      return 'completed';
+    } else if (normalizedStatus === "pending" || normalizedStatus === "processing") {
+      return 'pending';
+    } else if (normalizedStatus === "failed" || normalizedStatus === "error") {
       return 'failed';
     }
-    return transaction.status;
+    // Default to completed for consistency with modal
+    return 'completed';
   };
 
   const getSenderInfo = (transaction: Transaction) => {

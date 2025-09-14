@@ -28,7 +28,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
+  logout: (reason?: string) => Promise<void>;
   updateUser: (updatedUser: Partial<User>) => void;
   refreshUser: () => Promise<void>;
   isLoading: boolean;
@@ -68,6 +68,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                   const userData = userDetailsResponse?.data;
                   
                   if (userData) {
+                    // Check if user is still active
+                    if (userData.active === false) {
+                      console.log('User account has been deactivated, logging out');
+                      await logout('Account deactivated');
+                      return;
+                    }
+
                     const freshUser = {
                       id: userData.id?.toString() || localUser.id,
                       username: userData.username,
@@ -125,6 +132,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 const userData = userDetailsResponse?.data;
                 
                 if (userData) {
+                  // Check if user is still active
+                  if (userData.active === false) {
+                    console.log('User account has been deactivated, logging out');
+                    await logout('Account deactivated');
+                    return;
+                  }
+
                   const freshUser = {
                     id: userData.id?.toString() || localUser.id,
                     username: userData.username,
@@ -197,6 +211,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               console.log('Extracted user data from API:', userData);
               
               if (userData) {
+                // Check if user is active/deactivated
+                if (userData.active === false) {
+                  console.log('Login blocked: User account is deactivated');
+                  return { 
+                    success: false, 
+                    error: "Your account has been deactivated. Please contact your administrator." 
+                  };
+                }
+
                 // Create user object with detailed information from database
                 console.log('Creating user object from database data:', userData);
                 const user: User = {
@@ -300,6 +323,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const userData = userDetailsResponse?.data;
         
         if (userData) {
+          // Check if user is still active
+          if (userData.active === false) {
+            console.log('User account has been deactivated during refresh, logging out');
+            await logout('Account deactivated');
+            return;
+          }
+
           const refreshedUser: User = {
             id: userData.id?.toString() || user.id,
             username: userData.username,
@@ -327,7 +357,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const logout = async (): Promise<void> => {
+  const logout = async (reason?: string): Promise<void> => {
     try {
       // Try to logout from the API
       await apiClient.logout();
@@ -336,6 +366,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Continue with local logout even if API call fails
     } finally {
       clearAuthState();
+      
+      // If there's a specific reason (like deactivation), we could emit an event
+      // or use a global notification system here
+      if (reason) {
+        console.log('Logout reason:', reason);
+        // You could dispatch a custom event here if needed
+        window.dispatchEvent(new CustomEvent('userLoggedOut', { detail: { reason } }));
+      }
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 import {
   Plus,
@@ -39,10 +40,38 @@ interface ServiceFormData {
 }
 
 const ServiceCreation: React.FC = () => {
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Admin check - same normalization as other components
+  const normalizeRole = (role: string | undefined) => {
+    if (role && typeof role === 'string') {
+      return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+    }
+    return '';
+  };
+  
+  const isAdmin = normalizeRole(user?.role) === "Admin";
+
+  // Redirect non-admin users
+  useEffect(() => {
+    if (!isAdmin && user) {
+      router.push('/dashboard');
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access Service Creation.",
+        variant: "destructive",
+      });
+    }
+  }, [isAdmin, user, router, toast]);
+
+  // Don't render anything for non-admin users
+  if (!isAdmin) {
+    return null;
+  }
   
   const [formData, setFormData] = useState<ServiceFormData>({
     name: "",

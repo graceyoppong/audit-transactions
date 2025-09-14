@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 
 interface Service {
@@ -113,6 +114,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ServiceManagement: React.FC = () => {
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -125,6 +127,33 @@ const ServiceManagement: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Admin check - same normalization as other components
+  const normalizeRole = (role: string | undefined) => {
+    if (role && typeof role === 'string') {
+      return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+    }
+    return '';
+  };
+  
+  const isAdmin = normalizeRole(user?.role) === "Admin";
+
+  // Redirect non-admin users
+  useEffect(() => {
+    if (!isAdmin && user) {
+      router.push('/dashboard');
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access Service Management.",
+        variant: "destructive",
+      });
+    }
+  }, [isAdmin, user, router, toast]);
+
+  // Don't render anything for non-admin users
+  if (!isAdmin) {
+    return null;
+  }
 
   // Load services from API
   useEffect(() => {
