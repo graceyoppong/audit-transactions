@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/apiClient';
 import { Transaction } from '@/lib/mockData';
+import { getTransactionStatus as getStatusFromChecker } from '@/components/StatusChecker';
 
 interface UseTransactionsResult {
   transactions: Transaction[];
@@ -61,16 +62,29 @@ const mapApiTransactionToTransaction = (apiTransaction: any): Transaction => {
     console.warn('Failed to parse response payload:', e);
   }
 
-  // Determine transaction status based on various status fields
+  // Determine transaction status - first check if StatusChecker can handle this transaction type
+  const checkerStatus = getStatusFromChecker({
+    transtype: apiTransaction.transtype,
+    param4: apiTransaction.param4,
+    responsecode: apiTransaction.responsecode
+  } as Transaction);
+  
   let status: "completed" | "pending" | "failed" = "pending";
-  if (apiTransaction.transferstatus === "Successfully Processed Transaction" || 
-      apiTransaction.responsecode === "000" || 
-      callbackData.responseCode === "01") {
-    status = "completed";
-  } else if (apiTransaction.responsecode === "999" || 
-             apiTransaction.transferstatus?.toLowerCase().includes("failed") ||
-             apiTransaction.exceptions) {
-    status = "failed";
+  
+  if (checkerStatus !== 'unknown') {
+    // Use StatusChecker logic for supported transaction types
+    status = checkerStatus === 'success' ? 'completed' : checkerStatus;
+  } else {
+    // Fall back to original logic for unsupported transaction types
+    if (apiTransaction.transferstatus === "Successfully Processed Transaction" || 
+        apiTransaction.responsecode === "000" || 
+        callbackData.responseCode === "01") {
+      status = "completed";
+    } else if (apiTransaction.responsecode === "999" || 
+               apiTransaction.transferstatus?.toLowerCase().includes("failed") ||
+               apiTransaction.exceptions) {
+      status = "failed";
+    }
   }
 
   // Determine transaction type based on the data

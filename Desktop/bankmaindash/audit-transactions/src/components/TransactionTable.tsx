@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Transaction } from "@/lib/mockData";
 import TransactionDetailModal from "@/components/TransactionDetailModal";
+import { getTransactionStatus, getStatusVariant, getTransactionDescription, getTransactionId } from "@/components/StatusChecker";
+import { formatAmount, formatDate } from "@/lib/utils";
 import {
   ChevronLeft,
   ChevronRight,
@@ -55,52 +57,38 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     setSelectedTransaction(null);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
-      case "failed":
-        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
+  // Use centralized formatting utilities
+  const formatAmountDisplay = (amount: number | string, currency?: string) => {
+    return formatAmount(amount, currency && currency !== "GHS" ? currency : "GH₵");
   };
 
-  const formatAmount = (amount: number | string) => {
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return `GH₵ ${numAmount.toFixed(2)}`;
+  const formatDateDisplay = (dateString: string) => {
+    return formatDate(dateString);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }) + " " + date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getTransactionStatus = (transaction: Transaction) => {
-    // Use same logic as TransactionDetailModal for consistency
-    const status = transaction.status || transaction.transferstatus || "completed";
-    const normalizedStatus = status?.toLowerCase() || '';
+  // Use the centralized status logic from StatusChecker
+  const getStatusDisplay = (transaction: Transaction) => {
+    const status = getTransactionStatus(transaction);
+    const variant = getStatusVariant(status);
     
-    if (normalizedStatus === "completed" || normalizedStatus === "success" || 
-        normalizedStatus === "successfully processed transaction." ||
-        (transaction.transferstatus && transaction.transferstatus.toLowerCase().includes("success"))) {
-      return 'completed';
-    } else if (normalizedStatus === "pending" || normalizedStatus === "processing") {
-      return 'pending';
-    } else if (normalizedStatus === "failed" || normalizedStatus === "error") {
-      return 'failed';
+    // For non-AM/MA transactions, fall back to original logic
+    if (status === 'unknown') {
+      const fallbackStatus = transaction.status || transaction.transferstatus || "completed";
+      const normalizedStatus = fallbackStatus?.toLowerCase() || '';
+      
+      if (normalizedStatus === "completed" || normalizedStatus === "success" || 
+          normalizedStatus === "successfully processed transaction." ||
+          (transaction.transferstatus && transaction.transferstatus.toLowerCase().includes("success"))) {
+        return { status: 'completed', variant: 'default' as const };
+      } else if (normalizedStatus === "pending" || normalizedStatus === "processing") {
+        return { status: 'pending', variant: 'outline' as const };
+      } else if (normalizedStatus === "failed" || normalizedStatus === "error") {
+        return { status: 'failed', variant: 'destructive' as const };
+      }
+      return { status: 'completed', variant: 'default' as const };
     }
-    // Default to completed for consistency with modal
-    return 'completed';
+    
+    return { status, variant };
   };
 
   const getSenderInfo = (transaction: Transaction) => {
@@ -111,8 +99,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     return transaction.receiveraccount || transaction.recipient || transaction.receivername || "-";
   };
 
-  const getTransactionId = (transaction: Transaction) => {
-    return transaction.transactionid || transaction.reference || transaction.id;
+  const getTransactionIdDisplay = (transaction: Transaction) => {
+    return getTransactionId(transaction);
   };
 
   const getBatchNumber = (transaction: Transaction) => {
@@ -120,7 +108,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   const getDescription = (transaction: Transaction) => {
-    return transaction.narration || transaction.description || "-";
+    return getTransactionDescription(transaction);
   };
 
   // Pagination logic
@@ -254,7 +242,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   onClick={() => handleTransactionClick(transaction)}
                 >
                   <TableCell className="font-mono text-sm text-gray-900 dark:text-gray-100">
-                    {getTransactionId(transaction)}
+                    {getTransactionIdDisplay(transaction)}
                   </TableCell>
                   <TableCell className="font-mono text-sm text-gray-700 dark:text-gray-300">
                     {getBatchNumber(transaction)}
@@ -266,19 +254,32 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     {getReceiverInfo(transaction)}
                   </TableCell>
                   <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatAmount(transaction.amount)}
+                    {formatAmountDisplay(transaction.amount, transaction.currency)}
                   </TableCell>
                   <TableCell className="text-gray-700 dark:text-gray-300">
                     {getDescription(transaction)}
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(getTransactionStatus(transaction))}>
-                      {getTransactionStatus(transaction).charAt(0).toUpperCase() +
-                        getTransactionStatus(transaction).slice(1)}
-                    </Badge>
+                    {(() => {
+                      const { status, variant } = getStatusDisplay(transaction);
+                      // Custom styling for all status types to ensure correct colors
+                      let customClassName = '';
+                      if (status === 'pending') {
+                        customClassName = 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800';
+                      } else if (status === 'completed' || status === 'success') {
+                        customClassName = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
+                      } else if (status === 'failed') {
+                        customClassName = 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800';
+                      }
+                      return (
+                        <Badge variant={variant} className={customClassName}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatDate(transaction.postingdate || transaction.date)}
+                    {formatDateDisplay(transaction.postingdate || transaction.date)}
                   </TableCell>
                 </TableRow>
               ))

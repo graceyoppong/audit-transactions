@@ -13,6 +13,7 @@ import { Transaction } from "@/lib/mockData";
 import { exportToPDF, exportToExcel, exportToCSV } from "@/lib/exportUtils";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useService } from "@/hooks/useService";
+import { formatAmount, formatNumber } from "@/lib/utils";
 import {
   ArrowLeft,
   Filter,
@@ -491,7 +492,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : baseTransactions.length}
+                    {loading ? "..." : formatNumber(baseTransactions.length)}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {appliedFilters && (appliedFilters.dateFrom || appliedFilters.dateTo) 
@@ -517,7 +518,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : completedCount}
+                    {loading ? "..." : formatNumber(completedCount)}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Successful transactions
@@ -541,7 +542,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : pendingCount}
+                    {loading ? "..." : formatNumber(pendingCount)}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     In progress
@@ -565,7 +566,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : failedCount}
+                    {loading ? "..." : formatNumber(failedCount)}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Unsuccessful transactions
@@ -584,7 +585,7 @@ const TransactionDetails: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : `GH₵ ${(activeStatFilter ? filteredTransactionsAmount : allTransactionsAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    {loading ? "..." : formatAmount(activeStatFilter ? filteredTransactionsAmount : allTransactionsAmount, "GH₵")}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {activeStatFilter ? `Total for ${activeStatFilter} transactions` : 'Total volume'}

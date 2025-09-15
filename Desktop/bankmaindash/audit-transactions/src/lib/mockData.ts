@@ -17,6 +17,11 @@ export interface Transaction {
   errorMessage?: string;
   processingTime?: number; // in milliseconds
   
+  // Service identification
+  serviceId?: string;
+  serviceName?: string;
+  serviceTitle?: string;
+  
   // New fields to match database structure
   transactionid?: string;
   batchnumber?: string;

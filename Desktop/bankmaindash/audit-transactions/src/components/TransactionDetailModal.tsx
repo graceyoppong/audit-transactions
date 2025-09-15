@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Transaction } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
+import { getTransactionStatus, getStatusVariant, getStatusIcon as getCheckerStatusIcon, getTransactionDescription, getTransactionId, getTransactionBranch } from "@/components/StatusChecker";
+import { formatAmount, formatDetailedDate } from "@/lib/utils";
 import {
   CheckCircle,
   Clock,
@@ -56,6 +58,76 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   console.log("Normalized role:", normalizeRole(user?.role));
   console.log("Is admin check:", isAdmin);
 
+  // Get unified status display using StatusChecker logic
+  // Get transaction ID using centralized logic
+  const getTransactionIdDisplay = () => {
+    return getTransactionId(transaction);
+  };
+
+  // Get transaction description using centralized logic
+  const getTransactionDescriptionText = () => {
+    return getTransactionDescription(transaction);
+  };
+
+  // Get transaction branch using centralized logic
+  const getTransactionBranchText = () => {
+    return getTransactionBranch(transaction);
+  };
+
+  const getStatusDisplay = () => {
+    const checkerStatus = getTransactionStatus(transaction);
+    
+    if (checkerStatus !== 'unknown') {
+      // Use StatusChecker for supported transaction types
+      const displayStatus = checkerStatus === 'success' ? 'completed' : checkerStatus;
+      const variant = getStatusVariant(checkerStatus);
+      const icon = getCheckerStatusIcon(checkerStatus, 20);
+      
+      return {
+        status: displayStatus,
+        variant,
+        icon,
+        displayText: displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)
+      };
+    }
+    
+    // Fall back to original logic for unsupported transaction types
+    const fallbackStatus = transaction.status || transaction.transferstatus || "completed";
+    const normalizedStatus = fallbackStatus?.toLowerCase() || '';
+    
+    if (normalizedStatus === "completed" || normalizedStatus === "success" || 
+        normalizedStatus === "successfully processed transaction." ||
+        (transaction.transferstatus && transaction.transferstatus.toLowerCase().includes("success"))) {
+      return {
+        status: 'completed',
+        variant: 'default' as const,
+        icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+        displayText: 'Completed'
+      };
+    } else if (normalizedStatus === "pending" || normalizedStatus === "processing") {
+      return {
+        status: 'pending',
+        variant: 'outline' as const,
+        icon: <Clock className="w-5 h-5 text-yellow-500" />,
+        displayText: 'Pending'
+      };
+    } else if (normalizedStatus === "failed" || normalizedStatus === "error") {
+      return {
+        status: 'failed',
+        variant: 'destructive' as const,
+        icon: <XCircle className="w-5 h-5 text-red-500" />,
+        displayText: 'Failed'
+      };
+    }
+    
+    return {
+      status: 'completed',
+      variant: 'default' as const,
+      icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+      displayText: 'Completed'
+    };
+  };
+
   const getStatusIcon = (status: string) => {
     // Handle real data format status mapping
     const normalizedStatus = status?.toLowerCase() || '';
@@ -87,27 +159,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        return dateString; // Return original string if parsing fails
-      }
-      return date.toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-    } catch (error) {
-      return dateString; // Return original string if any error occurs
-    }
+    return formatDetailedDate(dateString);
   };
 
-  const formatAmount = (amount: number) => {
-    return `GH₵ ${amount.toFixed(2)}`;
+  const formatAmountDisplay = (amount: number, currency?: string) => {
+    return formatAmount(amount, currency && currency !== "GHS" ? currency : "GH₵");
   };
 
   const renderTransactionInfo = () => {
@@ -145,12 +201,27 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         <div className="p-6 pb-20">
           <DialogHeader className="mb-6">
             <DialogTitle className="flex items-center space-x-2">
-              {getStatusIcon(transaction.status || transaction.transferstatus || "completed")}
-              <span>Transaction Details</span>
-              <Badge className={getStatusColor(transaction.status || transaction.transferstatus || "completed")}>
-                {(transaction.status || transaction.transferstatus || "Completed").charAt(0).toUpperCase() +
-                  (transaction.status || transaction.transferstatus || "Completed").slice(1)}
-              </Badge>
+              {(() => {
+                const { icon, variant, displayText, status } = getStatusDisplay();
+                // Custom styling for all status types to ensure correct colors
+                let customClassName = '';
+                if (status === 'pending') {
+                  customClassName = 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800';
+                } else if (status === 'completed' || status === 'success') {
+                  customClassName = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
+                } else if (status === 'failed') {
+                  customClassName = 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800';
+                }
+                return (
+                  <>
+                    {icon}
+                    <span>Transaction Details</span>
+                    <Badge variant={variant} className={customClassName}>
+                      {displayText}
+                    </Badge>
+                  </>
+                );
+              })()}
             </DialogTitle>
           </DialogHeader>
 
@@ -164,32 +235,31 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <span>Transaction Information</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+              <CardContent className="space-y-6">
+                {/* Transaction Description */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                    Description
+                  </h4>
+                  <p className="text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border">
+                    {getTransactionDescriptionText()}
+                  </p>
+                </div>
+
+                {/* Basic Transaction Details */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Transaction ID
                     </span>
                     <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
-                      {transaction.transactionid || transaction.reference}
+                      {getTransactionIdDisplay()}
                     </span>
                   </div>
                   
-                  {/* Reference Number - only show if different from transaction ID */}
-                  {transaction.reference && transaction.reference !== transaction.transactionid && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Reference Number
-                      </span>
-                      <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
-                        {transaction.reference}
-                      </span>
-                    </div>
-                  )}
-
                   {/* Batch Number */}
                   {transaction.batchnumber && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Batch Number
                       </span>
@@ -199,32 +269,42 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                      <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Transaction Date
                     </span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(transaction.date)}</span>
                   </div>
-                  
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                      <DollarSign className="w-4 h-4 mr-2 text-green-500" />
+
+                  {/* Branch Information */}
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Branch
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {getTransactionBranchText()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Amount Information */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Transaction Amount
                     </span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
                       {transaction.currency && transaction.currency !== "GHS" 
-                        ? `${transaction.currency} ${parseFloat(transaction.amount.toString()).toFixed(2)}`
-                        : formatAmount(transaction.amount)
+                        ? formatAmountDisplay(transaction.amount, transaction.currency)
+                        : formatAmountDisplay(transaction.amount)
                       }
                     </span>
                   </div>
 
                   {/* Payout Currency */}
                   {transaction.payoutcurrency && transaction.payoutcurrency !== transaction.currency && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                        <DollarSign className="w-4 h-4 mr-2 text-blue-500" />
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Payout Currency
                       </span>
                       <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
@@ -232,6 +312,23 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       </span>
                     </div>
                   )}
+                </div>
+
+                {/* Transaction Participants */}
+                <div className="space-y-3">
+                  <div className="space-y-3">
+                    {renderTransactionInfo().map((info, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center py-2"
+                      >
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {info.label}
+                        </span>
+                        <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{info.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -241,41 +338,21 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 <CardTitle className="text-lg">Service Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="mb-4">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
-                    Transaction Description
-                  </span>
-                  <p className="text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border">
-                    {transaction.description || transaction.narration || "No description available"}
-                  </p>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    Transaction Participants
-                  </h4>
-                  {renderTransactionInfo().map((info, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center py-2"
-                    >
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                        {React.cloneElement(info.icon, { className: "w-4 h-4 mr-2 text-blue-500" })}
-                        {info.label}
-                      </span>
-                      <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{info.value}</span>
-                    </div>
-                  ))}
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p className="text-sm">Service-specific details will be displayed here.</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Error Message for Failed Transactions */}
-          {((transaction.status === "failed" && transaction.errorMessage) || 
-            transaction.exceptions || 
-            (transaction.responsecode && transaction.responsecode !== "000") ||
-            (transaction.statuscode && transaction.statuscode !== "200")) && (
+          {(() => {
+            const { status } = getStatusDisplay();
+            return ((status === "failed" && transaction.errorMessage) || 
+              transaction.exceptions || 
+              (transaction.responsecode && transaction.responsecode !== "000") ||
+              (transaction.statuscode && transaction.statuscode !== "200"));
+          })() && (
             <Card className="border-red-200 dark:border-red-800">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center space-x-2 text-red-600 dark:text-red-400">

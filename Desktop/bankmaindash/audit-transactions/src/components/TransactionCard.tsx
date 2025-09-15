@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight, Globe } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
 
 interface TransactionCardProps {
   id: string;
@@ -110,7 +111,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             {isLoadingCount ? (
               <Skeleton className="h-4 w-20" />
             ) : (
-              `${transactionCount} transaction${transactionCount !== 1 ? "s" : ""}`
+              `${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? "s" : ""}`
             )}
           </div>
           <Button

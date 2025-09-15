@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { formatNumber } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -369,7 +370,7 @@ const ServiceManagement: React.FC = () => {
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Services</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{services.length}</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(services.length)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -384,7 +385,7 @@ const ServiceManagement: React.FC = () => {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Services</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {services.filter(s => s.status).length}
+                        {formatNumber(services.filter(s => s.status).length)}
                       </p>
                     </div>
                   </div>
@@ -400,7 +401,7 @@ const ServiceManagement: React.FC = () => {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Inactive Services</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {services.filter(s => !s.status).length}
+                        {formatNumber(services.filter(s => !s.status).length)}
                       </p>
                     </div>
                   </div>
@@ -416,9 +417,9 @@ const ServiceManagement: React.FC = () => {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Updated Today</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {services.filter(s => 
+                        {formatNumber(services.filter(s => 
                           new Date(s.updated_at).toDateString() === new Date().toDateString()
-                        ).length}
+                        ).length)}
                       </p>
                     </div>
                   </div>

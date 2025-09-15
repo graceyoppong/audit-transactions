@@ -3,6 +3,8 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Transaction } from "./mockData";
+import { getTransactionStatus as getStatusFromChecker, getTransactionDescription, getTransactionId, getTransactionBranch } from '@/components/StatusChecker';
+import { formatAmount, formatDate, formatNumber } from './utils';
 
 export interface ExportOptions {
   filename?: string;
@@ -19,6 +21,7 @@ const getUIColumns = () => {
     "Receiver", 
     "Amount",
     "Description",
+    "Branch",
     "Status",
     "Date & Time"
   ];
@@ -27,8 +30,8 @@ const getUIColumns = () => {
 // Helper function to get UI-style row data (matching TransactionTable.tsx)
 const getUIRowData = (transaction: Transaction): (string | number)[] => {
   // Helper functions matching the UI component
-  const getTransactionId = (transaction: Transaction) => {
-    return transaction.transactionid || transaction.reference || transaction.id;
+  const getTransactionIdDisplay = (transaction: Transaction) => {
+    return getTransactionId(transaction);
   };
 
   const getBatchNumber = (transaction: Transaction) => {
@@ -44,10 +47,22 @@ const getUIRowData = (transaction: Transaction): (string | number)[] => {
   };
 
   const getDescription = (transaction: Transaction) => {
-    return transaction.narration || transaction.description || "-";
+    return getTransactionDescription(transaction);
+  };
+
+  const getBranch = (transaction: Transaction) => {
+    return getTransactionBranch(transaction);
   };
 
   const getTransactionStatus = (transaction: Transaction) => {
+    const checkerStatus = getStatusFromChecker(transaction);
+    
+    // If StatusChecker handles this transaction type, use its result
+    if (checkerStatus !== 'unknown') {
+      return checkerStatus === 'success' ? 'completed' : checkerStatus;
+    }
+    
+    // Fall back to original logic for unsupported transaction types
     if (transaction.transferstatus) {
       if (transaction.transferstatus.toLowerCase().includes('success')) return 'completed';
       if (transaction.transferstatus.toLowerCase().includes('pending') || 
@@ -57,32 +72,24 @@ const getUIRowData = (transaction: Transaction): (string | number)[] => {
     return transaction.status;
   };
 
-  const formatAmount = (amount: number | string) => {
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return `GHS ${numAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const formatAmountForExport = (amount: number | string) => {
+    return formatAmount(amount, "GHS");
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short", 
-      year: "numeric",
-    }) + " " + date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const formatDateForExport = (dateString: string) => {
+    return formatDate(dateString);
   };
 
   return [
-    getTransactionId(transaction),
+    getTransactionIdDisplay(transaction),
     getBatchNumber(transaction),
     getSenderInfo(transaction),
     getReceiverInfo(transaction),
-    formatAmount(transaction.amount),
+    formatAmountForExport(transaction.amount),
     getDescription(transaction),
+    getBranch(transaction),
     getTransactionStatus(transaction).charAt(0).toUpperCase() + getTransactionStatus(transaction).slice(1),
-    formatDate(transaction.postingdate || transaction.date)
+    formatDateForExport(transaction.postingdate || transaction.date)
   ];
 };
 
@@ -157,17 +164,17 @@ export const exportToPDF = (
   
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(75, 85, 99);
-  doc.text(`Total Transactions: ${transactions.length.toLocaleString()}`, pageWidth/2 - 40, 68);
+  doc.text(`Total Transactions: ${formatNumber(transactions.length)}`, pageWidth/2 - 40, 68);
   
   // Status breakdown with colors
   doc.setTextColor(34, 197, 94); // Green
-  doc.text(`✓ Completed: ${completedCount.toLocaleString()}`, pageWidth/2 - 40, 75);
+  doc.text(`✓ Completed: ${formatNumber(completedCount)}`, pageWidth/2 - 40, 75);
   
   doc.setTextColor(251, 191, 36); // Yellow
-  doc.text(`⏳ Pending: ${pendingCount.toLocaleString()}`, pageWidth/2 - 40, 82);
+  doc.text(`⏳ Pending: ${formatNumber(pendingCount)}`, pageWidth/2 - 40, 82);
   
   doc.setTextColor(239, 68, 68); // Red
-  doc.text(`✗ Failed: ${failedCount.toLocaleString()}`, pageWidth/2 - 40, 89);
+  doc.text(`✗ Failed: ${formatNumber(failedCount)}`, pageWidth/2 - 40, 89);
 
   // Right column - Financial summary
   doc.setFont('helvetica', 'bold');
@@ -181,13 +188,13 @@ export const exportToPDF = (
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(34, 197, 94); // Green for amount
-  doc.text(`GHS ${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`, pageWidth - 120, 77);
+  doc.text(formatAmount(totalAmount, "GHS"), pageWidth - 120, 77);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(75, 85, 99);
   const avgAmount = totalAmount / transactions.length;
-  doc.text(`Average: GHS ${avgAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`, pageWidth - 120, 85);
+  doc.text(`Average: ${formatAmount(avgAmount, "GHS")}`, pageWidth - 120, 85);
 
   // Bottom separator line
   doc.setDrawColor(203, 213, 225);
@@ -202,14 +209,15 @@ export const exportToPDF = (
 
   // Column widths optimized to fill entire A3 landscape width
   const columnStyles: { [key: number]: any } = {
-    0: { cellWidth: 50, halign: 'left' }, // Transaction ID - wider
-    1: { cellWidth: 40, halign: 'left' }, // Batch No.
-    2: { cellWidth: 60, halign: 'left' }, // Sender - wider for full account info
-    3: { cellWidth: 60, halign: 'left' }, // Receiver - wider for full account info
-    4: { cellWidth: 45, halign: 'right' }, // Amount - much wider for large numbers
-    5: { cellWidth: 80, halign: 'left' }, // Description - much wider
-    6: { cellWidth: 30, halign: 'center' }, // Status
-    7: { cellWidth: 50, halign: 'center' }, // Date & Time
+    0: { cellWidth: 45, halign: 'left' }, // Transaction ID
+    1: { cellWidth: 35, halign: 'left' }, // Batch No.
+    2: { cellWidth: 55, halign: 'left' }, // Sender
+    3: { cellWidth: 55, halign: 'left' }, // Receiver
+    4: { cellWidth: 40, halign: 'right' }, // Amount
+    5: { cellWidth: 70, halign: 'left' }, // Description
+    6: { cellWidth: 30, halign: 'center' }, // Branch
+    7: { cellWidth: 25, halign: 'center' }, // Status
+    8: { cellWidth: 45, halign: 'center' }, // Date & Time
   };
 
   // Add table with UI-matching styling
@@ -239,7 +247,7 @@ export const exportToPDF = (
     theme: 'grid',
     didParseCell: function(data) {
       // Color status column exactly like UI badges
-      if (data.column.index === 6 && data.section === 'body') {
+      if (data.column.index === 7 && data.section === 'body') {
         const status = data.cell.text[0]?.toLowerCase();
         if (status === 'completed') {
           data.cell.styles.fillColor = [220, 252, 231]; // bg-green-100
@@ -303,7 +311,7 @@ export const exportToExcel = (
     [title],
     [`Generated: ${currentDate.toLocaleDateString('en-GB')} at ${currentDate.toLocaleTimeString('en-GB')}`],
     [`Service Type: ${serviceType ? serviceType.replace(/-/g, ' ').toUpperCase() : 'ALL SERVICES'}`],
-    [`Total Transactions: ${transactions.length} | Total Amount: GHS ${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`],
+    [`Total Transactions: ${formatNumber(transactions.length)} | Total Amount: ${formatAmount(totalAmount, "GHS")}`],
     [],
     columns, // Headers
     ...rows, // Data rows
@@ -348,6 +356,7 @@ export const exportToExcel = (
     { wch: 30 }, // Receiver
     { wch: 18 }, // Amount
     { wch: 40 }, // Description
+    { wch: 15 }, // Branch
     { wch: 15 }, // Status
     { wch: 25 }, // Date & Time
   ];
