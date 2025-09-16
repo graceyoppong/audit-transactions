@@ -14,6 +14,7 @@ import { exportToPDF, exportToExcel, exportToCSV } from "@/lib/exportUtils";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useService } from "@/hooks/useService";
 import { formatAmount, formatNumber } from "@/lib/utils";
+import { getTransactionStatus } from "@/components/StatusChecker";
 import {
   ArrowLeft,
   Filter,
@@ -109,6 +110,9 @@ const TransactionDetails: React.FC = () => {
           break;
         case 'pending':
           filtered = filtered.filter((t: Transaction) => t.status === "pending");
+          break;
+        case 'outstanding':
+          filtered = filtered.filter((t: Transaction) => getTransactionStatus(t) === "outstanding");
           break;
         case 'failed':
           filtered = filtered.filter((t: Transaction) => t.status === "failed");
@@ -359,6 +363,11 @@ const TransactionDetails: React.FC = () => {
     (t: Transaction) => t.status === "pending"
   ).length;
   const failedCount = baseTransactions.filter((t: Transaction) => t.status === "failed").length;
+  
+  // Calculate outstanding count using the status checker function
+  const outstandingCount = baseTransactions.filter(
+    (t: Transaction) => getTransactionStatus(t) === "outstanding"
+  ).length;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -475,7 +484,7 @@ const TransactionDetails: React.FC = () => {
             )}
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
               <Card 
                 className={`cursor-pointer transition-all hover:shadow-md ${
                   activeStatFilter === 'total' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950' : ''
@@ -546,6 +555,30 @@ const TransactionDetails: React.FC = () => {
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     In progress
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  activeStatFilter === 'outstanding' ? 'ring-2 ring-orange-500 bg-orange-50 dark:bg-orange-950' : ''
+                }`}
+                onClick={() => handleStatCardClick('outstanding')}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Outstanding
+                    </CardTitle>
+                    <AlertCircle className="w-5 h-5 text-orange-500" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {loading ? "..." : formatNumber(outstandingCount)}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Outstanding issues
                   </p>
                 </CardContent>
               </Card>

@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/apiClient";
+import { useTransactionCounts } from "@/hooks/useTransactionCounts";
 
 interface Service {
   id: number;
@@ -128,6 +129,17 @@ const ServiceManagement: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get service IDs for transaction count fetching
+  const serviceIds = services.map(service => service.id.toString());
+  
+  // Load transaction counts for all services
+  const { 
+    transactionCounts, 
+    loading: countsLoading, 
+    error: countsError, 
+    refetch: refetchCounts 
+  } = useTransactionCounts(serviceIds);
 
   // Admin check - same normalization as other components
   const normalizeRole = (role: string | undefined) => {
@@ -535,6 +547,23 @@ const ServiceManagement: React.FC = () => {
                       <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                         {service.description}
                       </p>
+                      
+                      {/* Transaction Count */}
+                      <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Transactions
+                          </span>
+                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                            {countsLoading ? (
+                              <div className="h-5 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                            ) : (
+                              formatNumber(transactionCounts[service.id.toString()] || 0)
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      
                       <div className="space-y-2 text-xs text-gray-500 dark:text-gray-400">
                         <div className="flex justify-between">
                           <span>Created:</span>

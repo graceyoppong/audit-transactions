@@ -207,6 +207,8 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 let customClassName = '';
                 if (status === 'pending') {
                   customClassName = 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800';
+                } else if (status === 'outstanding') {
+                  customClassName = 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800';
                 } else if (status === 'completed' || status === 'success') {
                   customClassName = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
                 } else if (status === 'failed') {
@@ -252,7 +254,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Transaction ID
                     </span>
-                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white text-right">
                       {getTransactionIdDisplay()}
                     </span>
                   </div>
@@ -335,11 +337,143 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Service Details</CardTitle>
+                <CardTitle className="text-lg flex items-center space-x-2">
+                  <Zap className="w-5 h-5" />
+                  <span>Service Details</span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <p className="text-sm">Service-specific details will be displayed here.</p>
+                {/* ITC Response Details */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                    ITC Response
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        ITC Response Code
+                      </span>
+                      <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
+                        transaction.param4 === "000" || transaction.param4 === "00" 
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : transaction.param4
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                      }`}>
+                        {transaction.param4 || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-start py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        ITC Message
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
+                        {transaction.param5 || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Response Details */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                    Payment Response
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Payment Response Code
+                      </span>
+                      <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
+                        transaction.responsecode === "000" || transaction.responsecode === "00" || transaction.responsecode === "200"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : transaction.responsecode
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                      }`}>
+                        {transaction.responsecode || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-start py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Payment Message
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
+                        {transaction.responsemessage || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transaction Status Details - Conditional based on success/failure */}
+                <div className="space-y-3">
+                  {(() => {
+                    const { status } = getStatusDisplay();
+                    const isFailed = status === 'failed';
+                    
+                    if (isFailed) {
+                      return (
+                        <>
+                          <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 border-b border-red-200 dark:border-red-700 pb-2">
+                            Reversal Status
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Reversed Status
+                              </span>
+                              <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
+                                transaction.confirmationcode
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                              }`}>
+                                {transaction.confirmationcode || "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-start py-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Reversed Message
+                              </span>
+                              <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
+                                {transaction.confirmationmessage || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    } else {
+                      // For all other statuses: pending, outstanding, completed
+                      return (
+                        <>
+                          <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 border-b border-green-200 dark:border-green-700 pb-2">
+                            Posted Status
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Posted Status
+                              </span>
+                              <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
+                                transaction.confirmationcode
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                              }`}>
+                                {transaction.confirmationcode || "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-start py-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Posted Message
+                              </span>
+                              <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
+                                {transaction.confirmationmessage || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    }
+                  })()}
                 </div>
               </CardContent>
             </Card>

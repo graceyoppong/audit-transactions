@@ -264,7 +264,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
           </div>
 
           {/* Date From */}
-          <div className="space-y-2">
+          <div className="space-y-2 w-full">
             <Label>Date From</Label>
             <Popover>
               <PopoverTrigger asChild>

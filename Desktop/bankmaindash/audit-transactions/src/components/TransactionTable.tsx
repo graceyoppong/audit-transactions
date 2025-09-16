@@ -19,7 +19,7 @@ import {
 import { Transaction } from "@/lib/mockData";
 import TransactionDetailModal from "@/components/TransactionDetailModal";
 import { getTransactionStatus, getStatusVariant, getTransactionDescription, getTransactionId } from "@/components/StatusChecker";
-import { formatAmount, formatDate } from "@/lib/utils";
+import { formatAmount, formatDate, formatNumber } from "@/lib/utils";
 import {
   ChevronLeft,
   ChevronRight,
@@ -266,6 +266,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       let customClassName = '';
                       if (status === 'pending') {
                         customClassName = 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800';
+                      } else if (status === 'outstanding') {
+                        customClassName = 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800';
                       } else if (status === 'completed' || status === 'success') {
                         customClassName = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
                       } else if (status === 'failed') {
@@ -293,8 +295,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           {/* Showing results text - Bottom Left */}
           <div className="text-sm text-gray-700 dark:text-gray-300">
-            Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, transactions.length)} of {transactions.length}{" "}
+            Showing {formatNumber(startIndex + 1)} to{" "}
+            {formatNumber(Math.min(endIndex, transactions.length))} of {formatNumber(transactions.length)}{" "}
             transactions
           </div>
 

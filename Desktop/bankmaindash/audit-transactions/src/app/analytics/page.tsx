@@ -519,7 +519,7 @@ const Analytics: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {displayStats.totalTransactions}
+                    {formatNumber(displayStats.totalTransactions)}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {selectedService
@@ -582,7 +582,7 @@ const Analytics: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {selectedService ? displayStats.failedTransactions : servicesAnalytics.length}
+                    {selectedService ? formatNumber(displayStats.failedTransactions) : formatNumber(servicesAnalytics.length)}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {selectedService
@@ -957,9 +957,9 @@ const Analytics: React.FC = () => {
                               Total Volume
                             </p>
                             <p className="text-xl font-bold text-gray-900 dark:text-white">
-                              GH₵ {(showCurrentMonth ? 
+                              {formatAmount(showCurrentMonth ? 
                                 (service.currentMonthTotalAmount || 0) : 
-                                service.totalAmount).toFixed(2)}
+                                service.totalAmount, "GH₵")}
                             </p>
                           </div>
                         </div>
@@ -988,7 +988,7 @@ const Analytics: React.FC = () => {
                           <div className="text-center">
                             <p className="text-sm text-gray-600 dark:text-gray-400">Avg Transaction</p>
                             <p className="text-xl font-bold text-blue-600">
-                              GH₵ {serviceSpecificData.avgTransactionAmount.toFixed(2)}
+                              {formatAmount(serviceSpecificData.avgTransactionAmount, "GH₵")}
                             </p>
                           </div>
                         </CardContent>
@@ -998,7 +998,7 @@ const Analytics: React.FC = () => {
                           <div className="text-center">
                             <p className="text-sm text-gray-600 dark:text-gray-400">Unique Users</p>
                             <p className="text-xl font-bold text-green-600">
-                              {serviceSpecificData.totalUniqueUsers}
+                              {formatNumber(serviceSpecificData.totalUniqueUsers)}
                             </p>
                           </div>
                         </CardContent>
@@ -1055,6 +1055,12 @@ const Analytics: React.FC = () => {
                                     border: "1px solid var(--border)",
                                     borderRadius: "6px",
                                   }}
+                                  formatter={(value: number | string, name: string) => [
+                                    name === "Volume (GH₵)" 
+                                      ? formatAmount(Number(value), "GH₵")
+                                      : formatNumber(Number(value)),
+                                    name
+                                  ]}
                                 />
                                 <Legend content={renderCustomLegend} />
                                 <Area
@@ -1111,6 +1117,7 @@ const Analytics: React.FC = () => {
                                     border: "1px solid var(--border)",
                                     borderRadius: "6px",
                                   }}
+                                  formatter={(value: number | string) => [formatNumber(Number(value)), "Transactions"]}
                                 />
                                 <Bar
                                   dataKey="transactions"
@@ -1153,6 +1160,7 @@ const Analytics: React.FC = () => {
                                   border: "1px solid var(--border)",
                                   borderRadius: "6px",
                                 }}
+                                formatter={(value: number | string) => [formatNumber(Number(value)), "Transaction Count"]}
                               />
                               <Bar
                                 dataKey="count"

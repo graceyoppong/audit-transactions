@@ -10,7 +10,7 @@ interface StatusCheckerProps {
   className?: string;
 }
 
-export type TransactionStatus = 'pending' | 'success' | 'failed' | 'unknown';
+export type TransactionStatus = 'pending' | 'success' | 'failed' | 'outstanding' | 'unknown';
 
 /**
  * Determines the status of transactions based on transaction type
@@ -42,6 +42,7 @@ export const getTransactionStatus = (transaction: Transaction): TransactionStatu
  * Status logic for AM/MA transactions
  * - Pending: param4 = null and responsecode = "000"
  * - Success: param4 = "01" and responsecode = "000" 
+ * - Outstanding: param4 = "01" and responsecode != "000"
  * - Failed: anything else
  */
 const getAMMAStatus = (transaction: Transaction): TransactionStatus => {
@@ -55,6 +56,11 @@ const getAMMAStatus = (transaction: Transaction): TransactionStatus => {
   // Success: param4 is "01" and responsecode is "000"
   if (param4 === "01" && responsecode === "000") {
     return 'success';
+  }
+
+  // Outstanding: param4 is "01" and responsecode is not "000"
+  if (param4 === "01" && responsecode !== "000") {
+    return 'outstanding';
   }
 
   // Everything else is failure
@@ -95,6 +101,10 @@ export const getTransactionDescription = (transaction: Transaction): string => {
       // Success: use param5
       return transaction.param5 || transaction.narration || transaction.description || "-";
     
+    case 'outstanding':
+      // Outstanding: use param5, if null then responsemessage
+      return transaction.param5 || transaction.responsemessage || transaction.narration || transaction.description || "-";
+    
     case 'failed':
       // Failed: use param5, if null then responsemessage
       return transaction.param5 || transaction.responsemessage || transaction.narration || transaction.description || "-";
@@ -120,6 +130,8 @@ export const getStatusVariant = (status: TransactionStatus): "default" | "second
       return 'default'; // Green
     case 'pending':
       return 'outline'; // Yellow
+    case 'outstanding':
+      return 'outline'; // Orange/Yellow variant
     case 'failed':
       return 'destructive'; // Red
     case 'unknown':
@@ -138,6 +150,8 @@ export const getStatusIcon = (status: TransactionStatus, size: number = 16) => {
       return <CheckCircle size={size} className="text-green-600" />;
     case 'pending':
       return <Clock size={size} className="text-blue-600" />;
+    case 'outstanding':
+      return <AlertCircle size={size} className="text-indigo-600" />;
     case 'failed':
       return <XCircle size={size} className="text-red-600" />;
     case 'unknown':
@@ -156,6 +170,8 @@ export const getStatusMessage = (status: TransactionStatus, transtype?: string):
       return 'Transaction completed successfully';
     case 'pending':
       return 'Transaction is being processed';
+    case 'outstanding':
+      return 'Transaction has outstanding issues';
     case 'failed':
       return 'Transaction failed';
     case 'unknown':
@@ -187,6 +203,8 @@ const StatusChecker: React.FC<StatusCheckerProps> = ({
   let customClassName = '';
   if (status === 'pending') {
     customClassName = 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800';
+  } else if (status === 'outstanding') {
+    customClassName = 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800';
   } else if (status === 'success') {
     customClassName = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
   } else if (status === 'failed') {
@@ -221,6 +239,8 @@ export const StatusBadge: React.FC<{ transaction: Transaction }> = ({ transactio
   let customClassName = '';
   if (status === 'pending') {
     customClassName = 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800';
+  } else if (status === 'outstanding') {
+    customClassName = 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800';
   } else if (status === 'success') {
     customClassName = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
   } else if (status === 'failed') {
@@ -259,6 +279,7 @@ export const StatusCard: React.FC<{ transaction: Transaction }> = ({ transaction
   const bgColor = {
     'success': 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
     'pending': 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+    'outstanding': 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
     'failed': 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
     'unknown': 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
   }[status];
