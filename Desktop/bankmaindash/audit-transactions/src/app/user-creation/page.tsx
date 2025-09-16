@@ -31,6 +31,8 @@ import {
   Phone,
   Briefcase,
   Shield,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface UserFormData {
@@ -70,6 +72,7 @@ const UserCreation: React.FC = () => {
         title: "Access Denied",
         description: "You don't have permission to access User Creation.",
         variant: "destructive",
+        duration: 7000,
       });
     }
   }, [isAdmin, user, router, toast]);
@@ -92,6 +95,8 @@ const UserCreation: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Partial<UserFormData>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -185,6 +190,7 @@ const UserCreation: React.FC = () => {
         title: "Validation Error",
         description: "Please fix the errors below and try again.",
         variant: "destructive",
+        duration: 7000,
       });
       return;
     }
@@ -210,6 +216,7 @@ const UserCreation: React.FC = () => {
       toast({
         title: "Success!",
         description: `User ${formData.firstName} ${formData.lastName} has been created successfully.`,
+        duration: 7000,
       });
 
       // Reset form
@@ -231,6 +238,7 @@ const UserCreation: React.FC = () => {
         title: "Error",
         description: error.message || "Failed to create user. Please try again.",
         variant: "destructive",
+        duration: 7000,
       });
     } finally {
       setIsLoading(false);
@@ -445,12 +453,19 @@ const UserCreation: React.FC = () => {
                           <Input
                             id="password"
                             name="password"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={formData.password}
                             onChange={handleInputChange}
                             placeholder="Enter password"
-                            className={`pl-10 ${errors.password ? 'border-red-500' : ''}`}
+                            className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
                           />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
                         {errors.password && (
                           <p className="text-red-500 text-xs mt-1">{errors.password}</p>
@@ -467,12 +482,19 @@ const UserCreation: React.FC = () => {
                           <Input
                             id="confirmPassword"
                             name="confirmPassword"
-                            type="password"
+                            type={showConfirmPassword ? "text" : "password"}
                             value={formData.confirmPassword}
                             onChange={handleInputChange}
                             placeholder="Confirm password"
-                            className={`pl-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                            className={`pl-10 pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                           />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
                         {errors.confirmPassword && (
                           <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>

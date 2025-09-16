@@ -92,11 +92,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   const getSenderInfo = (transaction: Transaction) => {
-    return transaction.senderaccount || transaction.sender || transaction.customername || "-";
+    return transaction.senderaccount || transaction.sender || transaction.customername || "N/A";
   };
 
   const getReceiverInfo = (transaction: Transaction) => {
-    return transaction.receiveraccount || transaction.recipient || transaction.receivername || "-";
+    return transaction.receiveraccount || transaction.recipient || transaction.receivername || "N/A";
   };
 
   const getTransactionIdDisplay = (transaction: Transaction) => {
@@ -104,7 +104,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   const getBatchNumber = (transaction: Transaction) => {
-    return transaction.batchnumber || transaction.reference || "-";
+    return transaction.batchnumber || transaction.reference || "N/A";
   };
 
   const getDescription = (transaction: Transaction) => {

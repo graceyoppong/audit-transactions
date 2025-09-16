@@ -33,41 +33,37 @@ export const getTransactionStatus = (transaction: Transaction): TransactionStatu
 
 /**
  * Unified status logic for all transactions using consistent parameter mapping
- * Only the success criteria differ between transaction types:
- * - AM/MA: param4 = "01" and responsecode = "000"
- * - Airtime Purchase: param4 = "200" and responsecode = "00"
- * - All others: param4 = "200" and responsecode = "000"
+ * Success criteria:
+ * - AM/MA: param4 = "01" and responsecode = "00" or "000"
+ * - All others: param4 = "200" and responsecode = "00" or "000"
  */
 const getUnifiedStatus = (transaction: Transaction): TransactionStatus => {
   const { param4, responsecode, transtype } = transaction;
 
-  // Determine expected success values based on transaction type
+  // Determine expected param4 based on transaction type
   let expectedParam4: string;
-  let expectedResponseCode: string;
-
+  
   if (['AM', 'MA'].includes(transtype || '')) {
     expectedParam4 = "01";
-    expectedResponseCode = "000";
-  } else if (transtype === 'Airtime Purchase') {
-    expectedParam4 = "200";
-    expectedResponseCode = "00";
   } else {
     expectedParam4 = "200";
-    expectedResponseCode = "000";
   }
 
-  // Pending: param4 is null/undefined and responsecode matches expected
-  if ((param4 === null || param4 === undefined || param4 === '') && responsecode === expectedResponseCode) {
+  // All transaction types now accept both "00" and "000" as valid response codes
+  const validResponseCodes = ["00", "000"];
+
+  // Pending: param4 is null/undefined and responsecode matches any valid code
+  if ((param4 === null || param4 === undefined || param4 === '') && validResponseCodes.includes(responsecode || '')) {
     return 'pending';
   }
 
-  // Success: param4 and responsecode both match expected values
-  if (param4 === expectedParam4 && responsecode === expectedResponseCode) {
+  // Success: param4 matches expected and responsecode matches any valid code
+  if (param4 === expectedParam4 && validResponseCodes.includes(responsecode || '')) {
     return 'success';
   }
 
-  // Outstanding: param4 matches expected but responsecode doesn't
-  if (param4 === expectedParam4 && responsecode !== expectedResponseCode) {
+  // Outstanding: param4 matches expected but responsecode doesn't match any valid code
+  if (param4 === expectedParam4 && !validResponseCodes.includes(responsecode || '')) {
     return 'outstanding';
   }
 
@@ -80,7 +76,7 @@ const getUnifiedStatus = (transaction: Transaction): TransactionStatus => {
  */
 export const getTransactionId = (transaction: Transaction): string => {
   // For all transaction types, use param3 only
-  return transaction.param3 || "";
+  return transaction.param3 || "N/A";
 };
 
 /**
@@ -95,16 +91,16 @@ export const getTransactionDescription = (transaction: Transaction): string => {
   switch (status) {
     case 'pending':
       // Pending: use responsemessage only
-      return transaction.responsemessage || "-";
+      return transaction.responsemessage || "N/A";
     
     case 'success':
     case 'outstanding':
     case 'failed':
       // Success/Outstanding/Failed: use param5 only
-      return transaction.param5 || "-";
+      return transaction.param5 || "N/A";
     
     default:
-      return "-";
+      return "N/A";
   }
 };
 
@@ -112,7 +108,7 @@ export const getTransactionDescription = (transaction: Transaction): string => {
  * Gets the branch value using param6
  */
 export const getTransactionBranch = (transaction: Transaction): string => {
-  return transaction.param6 || "-";
+  return transaction.param6 || "N/A";
 };
 
 /**

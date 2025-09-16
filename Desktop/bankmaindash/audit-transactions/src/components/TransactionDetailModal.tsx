@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,38 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   onClose,
 }) => {
   const { user } = useAuth();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Reset scroll position to top when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to ensure DOM is fully rendered
+      const timer = setTimeout(() => {
+        // Try multiple scroll reset strategies
+        if (contentRef.current) {
+          contentRef.current.scrollTop = 0;
+        }
+        
+        if (mainContainerRef.current) {
+          mainContainerRef.current.scrollTop = 0;
+        }
+        
+        // Also reset any scroll areas within the modal
+        const scrollAreas = document.querySelectorAll('[data-radix-scroll-area-viewport]');
+        scrollAreas.forEach(area => {
+          if (area instanceof HTMLElement) {
+            area.scrollTop = 0;
+          }
+        });
+        
+        // Reset window scroll as well
+        window.scrollTo(0, 0);
+      }, 10);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, transaction?.id]); // Also reset when transaction changes
   
   if (!transaction) return null;
 
@@ -197,8 +229,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-        <div className="p-6 pb-20">
+      <DialogContent 
+        ref={contentRef}
+        className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
+      >
+        <div ref={mainContainerRef} className="p-6 pb-20">
           <DialogHeader className="mb-6">
             <DialogTitle className="flex items-center space-x-2">
               {(() => {
