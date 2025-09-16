@@ -109,13 +109,13 @@ const TransactionDetails: React.FC = () => {
           filtered = filtered.filter((t: Transaction) => t.status === "completed");
           break;
         case 'pending':
-          filtered = filtered.filter((t: Transaction) => t.status === "pending");
+          filtered = filtered.filter((t: Transaction) => getTransactionStatus(t) === "pending");
           break;
         case 'outstanding':
           filtered = filtered.filter((t: Transaction) => getTransactionStatus(t) === "outstanding");
           break;
         case 'failed':
-          filtered = filtered.filter((t: Transaction) => t.status === "failed");
+          filtered = filtered.filter((t: Transaction) => getTransactionStatus(t) === "failed");
           break;
         // 'total' shows all transactions, so no additional filtering needed
       }
@@ -360,9 +360,9 @@ const TransactionDetails: React.FC = () => {
     (t: Transaction) => t.status === "completed"
   ).length;
   const pendingCount = baseTransactions.filter(
-    (t: Transaction) => t.status === "pending"
+    (t: Transaction) => getTransactionStatus(t) === "pending"
   ).length;
-  const failedCount = baseTransactions.filter((t: Transaction) => t.status === "failed").length;
+  const failedCount = baseTransactions.filter((t: Transaction) => getTransactionStatus(t) === "failed").length;
   
   // Calculate outstanding count using the status checker function
   const outstandingCount = baseTransactions.filter(

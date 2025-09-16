@@ -70,10 +70,16 @@ const mapApiTransactionToTransaction = (apiTransaction: any): Transaction => {
   } as Transaction);
   
   let status: "completed" | "pending" | "failed" = "pending";
-  
   if (checkerStatus !== 'unknown') {
     // Use StatusChecker logic for supported transaction types
-    status = checkerStatus === 'success' ? 'completed' : checkerStatus;
+    if (checkerStatus === 'success') {
+      status = 'completed';
+    } else if (checkerStatus === 'failed') {
+      status = 'failed';
+    } else {
+      // Treat 'outstanding' and any other as 'pending'
+      status = 'pending';
+    }
   } else {
     // Fall back to original logic for unsupported transaction types
     if (apiTransaction.transferstatus === "Successfully Processed Transaction" || 
@@ -194,15 +200,15 @@ export const useTransactions = (serviceId: string): UseTransactionsResult => {
       let transactionsList: any[] = [];
       let total = 0;
       
-      // Handle different response structures
-      if (Array.isArray(response)) {
-        transactionsList = response;
-        total = response.length;
-        console.log('Using array response, total transactions:', total);
-      } else if (response?.data && Array.isArray(response.data)) {
+      // Always use response.data if available, fallback to array only if missing
+      if (response?.data && Array.isArray(response.data)) {
         transactionsList = response.data;
         total = response.total || response.count || response.data.length;
         console.log('Using response.data, total transactions:', total);
+      } else if (Array.isArray(response)) {
+        transactionsList = response;
+        total = response.length;
+        console.log('Using array response, total transactions:', total);
       } else if (response?.transactions && Array.isArray(response.transactions)) {
         transactionsList = response.transactions;
         total = response.total || response.count || response.transactions.length;

@@ -287,10 +287,8 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       {getTransactionBranchText()}
                     </span>
                   </div>
-                </div>
 
-                {/* Amount Information */}
-                <div className="space-y-3">
+                  {/* Transaction Amount */}
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Transaction Amount
@@ -314,23 +312,30 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       </span>
                     </div>
                   )}
-                </div>
 
-                {/* Transaction Participants */}
-                <div className="space-y-3">
-                  <div className="space-y-3">
-                    {renderTransactionInfo().map((info, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center py-2"
-                      >
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {info.label}
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{info.value}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Sender Account */}
+                  {transaction.senderaccount && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Sender Account
+                      </span>
+                      <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                        {transaction.senderaccount}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Receiver Account */}
+                  {transaction.receiveraccount && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Receiver Account
+                      </span>
+                      <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                        {transaction.receiveraccount}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -346,26 +351,20 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 {/* ITC Response Details */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    ITC Response
+                    Service Response
                   </h4>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        ITC Response Code
+                        Response Code
                       </span>
-                      <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
-                        transaction.param4 === "000" || transaction.param4 === "00" 
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : transaction.param4
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                      }`}>
+                      <span className="font-mono text-sm font-semibold px-2 py-1 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         {transaction.param4 || "N/A"}
                       </span>
                     </div>
                     <div className="flex justify-between items-start py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        ITC Message
+                        Message
                       </span>
                       <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
                         {transaction.param5 || "N/A"}
@@ -382,7 +381,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <div className="space-y-2">
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Payment Response Code
+                        Response Code
                       </span>
                       <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
                         transaction.responsecode === "000" || transaction.responsecode === "00" || transaction.responsecode === "200"
@@ -396,7 +395,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </div>
                     <div className="flex justify-between items-start py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Payment Message
+                        Message
                       </span>
                       <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
                         {transaction.responsemessage || "N/A"}
@@ -420,7 +419,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                           <div className="space-y-2">
                             <div className="flex justify-between items-center py-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Reversed Status
+                                Status
                               </span>
                               <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
                                 transaction.confirmationcode
@@ -432,7 +431,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                             </div>
                             <div className="flex justify-between items-start py-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Reversed Message
+                                Message
                               </span>
                               <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
                                 {transaction.confirmationmessage || "N/A"}
@@ -451,7 +450,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                           <div className="space-y-2">
                             <div className="flex justify-between items-center py-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Posted Status
+                                Status
                               </span>
                               <span className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
                                 transaction.confirmationcode
@@ -463,7 +462,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                             </div>
                             <div className="flex justify-between items-start py-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Posted Message
+                                Message
                               </span>
                               <span className="text-sm text-gray-900 dark:text-white text-right max-w-xs">
                                 {transaction.confirmationmessage || "N/A"}
@@ -482,10 +481,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           {/* Error Message for Failed Transactions */}
           {(() => {
             const { status } = getStatusDisplay();
+            const transactionStatus = getTransactionStatus(transaction);
             return ((status === "failed" && transaction.errorMessage) || 
               transaction.exceptions || 
-              (transaction.responsecode && transaction.responsecode !== "000") ||
-              (transaction.statuscode && transaction.statuscode !== "200"));
+              (transactionStatus === 'failed' || transactionStatus === 'outstanding'));
           })() && (
             <Card className="border-red-200 dark:border-red-800">
               <CardHeader className="pb-3">

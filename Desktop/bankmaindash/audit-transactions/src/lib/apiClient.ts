@@ -57,6 +57,7 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      cache: 'no-store',
       ...options,
     };
 

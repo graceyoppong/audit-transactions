@@ -14,10 +14,11 @@ export type TransactionStatus = 'pending' | 'success' | 'failed' | 'outstanding'
 
 /**
  * Determines the status of transactions based on transaction type
- * Currently supports:
- * - AM/MA: Account to Mobile / Mobile to Account transfers
- * 
- * Future transaction types can be added here
+ * All transaction types use the same parameter mapping:
+ * - Transaction ID: param3
+ * - Description: param5 (success/outstanding/failed) or responsemessage (pending)
+ * - Branch: param6
+ * - Status determination: param4 and responsecode
  */
 export const getTransactionStatus = (transaction: Transaction): TransactionStatus => {
   const { transtype } = transaction;
@@ -26,40 +27,47 @@ export const getTransactionStatus = (transaction: Transaction): TransactionStatu
     return 'unknown';
   }
 
-  // Handle AM/MA transaction types (Account to Mobile / Mobile to Account)
-  if (['AM', 'MA'].includes(transtype)) {
-    return getAMMAStatus(transaction);
-  }
-
-  // Future transaction types can be added here:
-  // if (transtype === 'BP') return getBillPaymentStatus(transaction);
-  // if (transtype === 'FT') return getFundTransferStatus(transaction);
-
-  return 'unknown';
+  // Use unified status logic for all transaction types
+  return getUnifiedStatus(transaction);
 };
 
 /**
- * Status logic for AM/MA transactions
- * - Pending: param4 = null and responsecode = "000"
- * - Success: param4 = "01" and responsecode = "000" 
- * - Outstanding: param4 = "01" and responsecode != "000"
- * - Failed: anything else
+ * Unified status logic for all transactions using consistent parameter mapping
+ * Only the success criteria differ between transaction types:
+ * - AM/MA: param4 = "01" and responsecode = "000"
+ * - Airtime Purchase: param4 = "200" and responsecode = "00"
+ * - All others: param4 = "200" and responsecode = "000"
  */
-const getAMMAStatus = (transaction: Transaction): TransactionStatus => {
-  const { param4, responsecode } = transaction;
+const getUnifiedStatus = (transaction: Transaction): TransactionStatus => {
+  const { param4, responsecode, transtype } = transaction;
 
-  // Pending: param4 is null/undefined and responsecode is "000"
-  if ((param4 === null || param4 === undefined || param4 === '') && responsecode === "000") {
+  // Determine expected success values based on transaction type
+  let expectedParam4: string;
+  let expectedResponseCode: string;
+
+  if (['AM', 'MA'].includes(transtype || '')) {
+    expectedParam4 = "01";
+    expectedResponseCode = "000";
+  } else if (transtype === 'Airtime Purchase') {
+    expectedParam4 = "200";
+    expectedResponseCode = "00";
+  } else {
+    expectedParam4 = "200";
+    expectedResponseCode = "000";
+  }
+
+  // Pending: param4 is null/undefined and responsecode matches expected
+  if ((param4 === null || param4 === undefined || param4 === '') && responsecode === expectedResponseCode) {
     return 'pending';
   }
 
-  // Success: param4 is "01" and responsecode is "000"
-  if (param4 === "01" && responsecode === "000") {
+  // Success: param4 and responsecode both match expected values
+  if (param4 === expectedParam4 && responsecode === expectedResponseCode) {
     return 'success';
   }
 
-  // Outstanding: param4 is "01" and responsecode is not "000"
-  if (param4 === "01" && responsecode !== "000") {
+  // Outstanding: param4 matches expected but responsecode doesn't
+  if (param4 === expectedParam4 && responsecode !== expectedResponseCode) {
     return 'outstanding';
   }
 
@@ -68,49 +76,35 @@ const getAMMAStatus = (transaction: Transaction): TransactionStatus => {
 };
 
 /**
- * Gets the appropriate transaction ID for AM/MA transactions (uses param3)
+ * Gets the appropriate transaction ID for all transactions (uses param3)
  */
 export const getTransactionId = (transaction: Transaction): string => {
-  // For AM/MA transactions, use param3 if available
-  if (transaction.transtype && ['AM', 'MA'].includes(transaction.transtype) && transaction.param3) {
-    return transaction.param3;
-  }
-  
-  // For other transaction types, use original logic
-  return transaction.transactionid || transaction.reference || transaction.id || "";
+  // For all transaction types, use param3 only
+  return transaction.param3 || "";
 };
 
 /**
- * Gets the appropriate description based on transaction status for AM/MA transactions
+ * Gets the appropriate description based on transaction status
+ * Uses unified parameter mapping for all transaction types:
+ * - Pending: responsemessage only
+ * - Success/Outstanding/Failed: param5 only
  */
 export const getTransactionDescription = (transaction: Transaction): string => {
-  // Only process transactions with transtype 'AM' or 'MA'
-  if (!transaction.transtype || !['AM', 'MA'].includes(transaction.transtype)) {
-    // For non-AM/MA transactions, use original logic
-    return transaction.narration || transaction.description || "-";
-  }
-
-  const status = getAMMAStatus(transaction);
+  const status = getUnifiedStatus(transaction);
   
   switch (status) {
     case 'pending':
-      // Pending: use responsemessage
-      return transaction.responsemessage || transaction.narration || transaction.description || "-";
+      // Pending: use responsemessage only
+      return transaction.responsemessage || "-";
     
     case 'success':
-      // Success: use param5
-      return transaction.param5 || transaction.narration || transaction.description || "-";
-    
     case 'outstanding':
-      // Outstanding: use param5, if null then responsemessage
-      return transaction.param5 || transaction.responsemessage || transaction.narration || transaction.description || "-";
-    
     case 'failed':
-      // Failed: use param5, if null then responsemessage
-      return transaction.param5 || transaction.responsemessage || transaction.narration || transaction.description || "-";
+      // Success/Outstanding/Failed: use param5 only
+      return transaction.param5 || "-";
     
     default:
-      return transaction.narration || transaction.description || "-";
+      return "-";
   }
 };
 
@@ -183,7 +177,8 @@ export const getStatusMessage = (status: TransactionStatus, transtype?: string):
 
 /**
  * StatusChecker Component
- * Displays the status of AM/MA transactions with appropriate styling
+ * Displays the status of all transaction types with unified parameter mapping
+ * All transactions use: param3 (ID), param5 (description), param6 (branch)
  */
 const StatusChecker: React.FC<StatusCheckerProps> = ({ 
   transaction, 
@@ -194,7 +189,7 @@ const StatusChecker: React.FC<StatusCheckerProps> = ({
   const icon = getStatusIcon(status, 14);
   const message = getStatusMessage(status, transaction.transtype);
 
-  // Don't render for non-AM/MA transactions
+  // Don't render for transactions without transtype
   if (status === 'unknown') {
     return null;
   }
@@ -270,7 +265,7 @@ export const StatusCard: React.FC<{ transaction: Transaction }> = ({ transaction
           <span className="font-medium">Status Check Not Supported</span>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          This transaction type ({transaction.transtype || 'Unknown'}) is not currently supported for status checking.
+          This transaction does not have a transaction type specified.
         </p>
       </div>
     );
@@ -293,11 +288,15 @@ export const StatusCard: React.FC<{ transaction: Transaction }> = ({ transaction
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
         {message}
       </p>
-      <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
-        <div>Transaction Type: <span className="font-mono">{transaction.transtype}</span></div>
-        <div>Response Code: <span className="font-mono">{transaction.responsecode || 'N/A'}</span></div>
-        <div>Param4: <span className="font-mono">{transaction.param4 || 'null'}</span></div>
-      </div>
+      
+      {/* Only show error details for failed or outstanding status */}
+      {(status === 'failed' || status === 'outstanding') && (
+        <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+          <div>Transaction Type: <span className="font-mono">{transaction.transtype}</span></div>
+          <div>Response Code: <span className="font-mono">{transaction.responsecode || 'N/A'}</span></div>
+          <div>Param4: <span className="font-mono">{transaction.param4 || 'null'}</span></div>
+        </div>
+      )}
     </div>
   );
 };
